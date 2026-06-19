@@ -1,0 +1,42 @@
+buildscript {
+    dependencies {
+        classpath('net.serenity-bdd:serenity-gradle-plugin:4.2.8')
+    }
+}
+
+plugins {
+    id 'java'
+}
+
+apply plugin: "net.serenity-bdd.serenity-gradle-plugin"
+
+group 'de.comsystoreply.aiqe'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+ext {
+    junitVersion = '5.11.3'
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+dependencies {
+    testImplementation('com.codeborne:selenide:7.6.0')
+    testImplementation('net.serenity-bdd:serenity-core:4.2.8')
+    testImplementation('net.serenity-bdd:serenity-junit:4.2.8')
+    testImplementation('org.assertj:assertj-core:3.26.3')
+    testImplementation('org.slf4j:slf4j-simple:2.0.16')
+
+    testImplementation("org.junit.jupiter:junit-jupiter-api:${junitVersion}")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${junitVersion}")
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine:${junitVersion}")
+}
+
+test {
+    useJUnitPlatform()
+}
