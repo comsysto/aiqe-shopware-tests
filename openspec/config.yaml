@@ -4,10 +4,17 @@ schema: spec-driven
 # This is shown to AI when creating artifacts.
 # Add your tech stack, conventions, style guides, domain knowledge, etc.
 # Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+     Tech stack: 
+          - **Selenide 7.6.0** fluent Selenium wrapper; use `$()`, `shouldBe()`, `shouldHave()` for assertions on elements
+          - **Serenity BDD 4.2.8** wraps JUnit to produce HTML reports; apply `@SerenityTest` when adding reporting steps
+          - **JUnit 5** test runner (`useJUnitPlatform()` in build)
+          - **AssertJ** fluent assertions for non-element checks
+     We use conventional commits
+     Domain: e-commerce platform
+     
+     - When facing any non-trivial architectural or framework decision, write an ADR (Architecture Decision Record).
+     - When documenting architecture that can be visualize, creatze a C4 diagram. 
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
