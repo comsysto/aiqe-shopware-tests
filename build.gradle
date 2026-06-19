@@ -19,6 +19,7 @@ repositories {
 
 ext {
     junitVersion = '5.11.3'
+    testcontainersVersion = '1.20.4'
 }
 
 tasks.withType(JavaCompile) {
@@ -26,6 +27,9 @@ tasks.withType(JavaCompile) {
 }
 
 dependencies {
+    testImplementation(platform("org.testcontainers:testcontainers-bom:${testcontainersVersion}"))
+    testImplementation('org.testcontainers:testcontainers')
+
     testImplementation('com.codeborne:selenide:7.6.0')
     testImplementation('net.serenity-bdd:serenity-core:4.2.8')
     testImplementation('net.serenity-bdd:serenity-junit:4.2.8')
