@@ -21,6 +21,6 @@ context: |
 # Example:
 rules:
      tasks:
-       - When working on any task make sure to create/check out a branch from main that is named according to gitflow and includes 
+       - When working on any task make sure to create/check out a branch from master that is named according to gitflow and includes 
          a reference to the prpoposal and the task number.
-       - When finishing any task, create a PR to main and ask the user to review it. Don't merge before the user has approved the changes.
+       - When finishing any task, create a PR to master and ask the user to review it. Don't merge before the user has approved the changes.

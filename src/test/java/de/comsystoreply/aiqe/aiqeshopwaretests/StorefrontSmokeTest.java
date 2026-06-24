@@ -21,7 +21,7 @@ class StorefrontSmokeTest {
     private static final GenericContainer<?> SHOPWARE =
             new GenericContainer<>("dockware/dev:latest")
                     .withExposedPorts(80)
-                    .waitingFor(Wait.forHttp("/").forStatusCode(200).withStartupTimeout(java.time.Duration.ofMinutes(3)));
+                    .waitingFor(Wait.forLogMessage(".*IS READY.*", 1).withStartupTimeout(java.time.Duration.ofMinutes(3)));
 
     private final StorefrontPage page = new StorefrontPage();
 
@@ -31,12 +31,38 @@ class StorefrontSmokeTest {
 
         if (baseUrl == null) {
             SHOPWARE.start();
-            Configuration.baseUrl = "http://" + SHOPWARE.getHost() + ":" + SHOPWARE.getMappedPort(80);
+            final String shopUrl = "http://" + SHOPWARE.getHost() + ":" + SHOPWARE.getMappedPort(80);
+            configureSalesChannelDomain(shopUrl);
+            Configuration.baseUrl = shopUrl;
         } else {
             Configuration.baseUrl = baseUrl;
         }
 
         Configuration.browserSize = "1280x800";
+    }
+
+    // Shopware's sales channel is pre-configured for http://localhost (port 80).
+    // Update the domain to match the dynamic port assigned by Testcontainers.
+    private static void configureSalesChannelDomain(final String shopUrl) {
+        try {
+            final var sqlResult = SHOPWARE.execInContainer(
+                    "mysql", "-h", "127.0.0.1", "-u", "root", "-proot", "shopware", "-e",
+                    "UPDATE sales_channel_domain SET url = '" + shopUrl + "' WHERE url = 'http://localhost';"
+            );
+            if (sqlResult.getExitCode() != 0) {
+                throw new RuntimeException("SQL update failed: " + sqlResult.getStderr());
+            }
+            final var cacheResult = SHOPWARE.execInContainer(
+                    "php", "/var/www/html/bin/console", "cache:clear"
+            );
+            if (cacheResult.getExitCode() != 0) {
+                throw new RuntimeException("Cache clear failed: " + cacheResult.getStderr());
+            }
+        } catch (final RuntimeException e) {
+            throw e;
+        } catch (final Exception e) {
+            throw new RuntimeException("Failed to configure Shopware sales channel domain", e);
+        }
     }
 
     @Test
@@ -55,7 +81,7 @@ class StorefrontSmokeTest {
     void category_navigation_works() {
         // given
         open("/");
-        final var firstNavLink = $$("nav.main-navigation a").first();
+        final var firstNavLink = $$("nav.main-navigation-menu a.main-navigation-link:not(.home-link)").first();
 
         // when
         firstNavLink.click();
