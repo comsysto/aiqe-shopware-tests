@@ -45,3 +45,10 @@ dependencies {
 test {
     useJUnitPlatform()
 }
+
+task discover(type: JavaExec, dependsOn: testClasses) {
+    group = 'discovery'
+    description = 'Crawls the Shopware storefront and writes JSON + PNG snapshots to build/discovery/'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'de.comsystoreply.aiqe.aiqeshopwaretests.DiscoveryRunner'
+}

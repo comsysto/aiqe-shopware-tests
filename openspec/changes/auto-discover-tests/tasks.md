@@ -1,7 +1,7 @@
 ## 1. Gradle Task Setup
 
-- [ ] 1.1 Add a `discover` source set (or `JavaExec` task) to `build.gradle` that runs `DiscoveryRunner` independently of the `test` task
-- [ ] 1.2 Ensure `build/discovery/` is excluded from Serenity report aggregation and add it to `.gitignore`
+- [x] 1.1 Add a `discover` source set (or `JavaExec` task) to `build.gradle` that runs `DiscoveryRunner` independently of the `test` task
+- [x] 1.2 Ensure `build/discovery/` is excluded from Serenity report aggregation and add it to `.gitignore`
 
 ## 2. DiscoveryRunner — Container & Auth
 
