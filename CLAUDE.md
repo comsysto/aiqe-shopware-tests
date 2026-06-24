@@ -8,7 +8,7 @@ Browser automation test suite for Shopware e-commerce platform, built with Selen
 
 ## Planning
 
-* Openspec is used to plan for this project.
+* Openspec is used to plan for this project. Please make sure to always follow the rules specified in openspec/config.yml. 
 
 ## Commands
 

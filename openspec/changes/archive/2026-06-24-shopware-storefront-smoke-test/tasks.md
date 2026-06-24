@@ -24,5 +24,5 @@
 
 ## 5. Verification
 
-- [ ] 5.1 Run `./gradlew test` and confirm all three smoke tests pass (container starts and stops automatically)
-- [ ] 5.2 Confirm Serenity report is generated in `build/reports/` with test results
+- [x] 5.1 Run `./gradlew test` and confirm all three smoke tests pass (container starts and stops automatically)
+- [x] 5.2 Confirm Serenity report is generated in `build/reports/` with test results

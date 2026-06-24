@@ -39,8 +39,16 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:${junitVersion}")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${junitVersion}")
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine:${junitVersion}")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 test {
     useJUnitPlatform()
+}
+
+task discover(type: JavaExec, dependsOn: testClasses) {
+    group = 'discovery'
+    description = 'Crawls the Shopware storefront and writes JSON + PNG snapshots to build/discovery/'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'de.comsystoreply.aiqe.aiqeshopwaretests.DiscoveryRunner'
 }
