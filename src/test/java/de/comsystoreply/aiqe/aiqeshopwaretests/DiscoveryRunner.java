@@ -2,6 +2,7 @@ package de.comsystoreply.aiqe.aiqeshopwaretests;
 
 import com.codeborne.selenide.Configuration;
 import com.codeborne.selenide.Selenide;
+import com.google.gson.GsonBuilder;
 
 import java.io.IOException;
 import java.net.URI;
@@ -9,11 +10,11 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static com.codeborne.selenide.Selenide.$;
 import static com.codeborne.selenide.Selenide.$$;
@@ -71,43 +72,21 @@ public class DiscoveryRunner {
 
     private static void writeJson(final String url, final boolean authRequired,
                                   final Map<String, List<String>> elements, final String slug) {
-        final var title = Selenide.title();
-        final var journeyHint = slug.replaceAll("-\\d+$", "");
+        final var snapshot = new LinkedHashMap<String, Object>();
+        snapshot.put("url", url);
+        snapshot.put("title", Selenide.title());
+        snapshot.put("journey_hint", slug.replaceAll("-\\d+$", ""));
+        snapshot.put("auth_required", authRequired);
+        snapshot.put("elements", elements);
 
-        final var sb = new StringBuilder("{\n");
-        sb.append("  \"url\": ").append(jsonString(url)).append(",\n");
-        sb.append("  \"title\": ").append(jsonString(title)).append(",\n");
-        sb.append("  \"journey_hint\": ").append(jsonString(journeyHint)).append(",\n");
-        sb.append("  \"auth_required\": ").append(authRequired).append(",\n");
-        sb.append("  \"elements\": {\n");
-
-        final var elementEntries = elements.entrySet().stream()
-                .map(e -> "    " + jsonString(e.getKey()) + ": " + jsonArray(e.getValue()))
-                .collect(Collectors.joining(",\n"));
-        sb.append(elementEntries).append("\n");
-
-        sb.append("  }\n}");
+        final var json = new GsonBuilder().setPrettyPrinting().create().toJson(snapshot);
 
         try {
             Files.createDirectories(OUTPUT_DIR);
-            Files.writeString(OUTPUT_DIR.resolve(slug + ".json"), sb.toString());
+            Files.writeString(OUTPUT_DIR.resolve(slug + ".json"), json);
         } catch (final IOException e) {
             throw new RuntimeException("Failed to write snapshot JSON for " + url, e);
         }
-    }
-
-    private static String jsonString(final String value) {
-        final var escaped = value
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
-        return "\"" + escaped + "\"";
-    }
-
-    private static String jsonArray(final List<String> values) {
-        return "[" + values.stream().map(DiscoveryRunner::jsonString).collect(Collectors.joining(", ")) + "]";
     }
 
     static String toSlug(final String url) {
