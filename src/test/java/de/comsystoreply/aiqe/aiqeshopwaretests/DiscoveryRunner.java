@@ -2,13 +2,17 @@ package de.comsystoreply.aiqe.aiqeshopwaretests;
 
 import com.codeborne.selenide.Configuration;
 import com.codeborne.selenide.Selenide;
+import com.codeborne.selenide.WebDriverRunner;
 import com.google.gson.GsonBuilder;
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.TakesScreenshot;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -66,7 +70,17 @@ public class DiscoveryRunner {
         final var slug = toSlug(url);
         final var elements = extractElements();
         writeJson(url, authRequired, elements, slug);
-        // TODO: write PNG screenshot (task 4.2)
+        writeScreenshot(slug);
+    }
+
+    private static void writeScreenshot(final String slug) {
+        final var src = ((TakesScreenshot) WebDriverRunner.getWebDriver()).getScreenshotAs(OutputType.FILE);
+        try {
+            Files.createDirectories(OUTPUT_DIR);
+            Files.copy(src.toPath(), OUTPUT_DIR.resolve(slug + ".png"), StandardCopyOption.REPLACE_EXISTING);
+        } catch (final IOException e) {
+            throw new RuntimeException("Failed to write screenshot for " + slug, e);
+        }
     }
 
     private static void writeJson(final String url, final boolean authRequired,
