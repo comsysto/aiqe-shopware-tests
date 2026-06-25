@@ -5,6 +5,7 @@ import com.codeborne.selenide.Configuration;
 import java.util.List;
 import java.util.Optional;
 
+import static com.codeborne.selenide.Selenide.$;
 import static com.codeborne.selenide.Selenide.$$;
 import static com.codeborne.selenide.Selenide.open;
 
@@ -12,6 +13,8 @@ public class DiscoveryRunner {
 
     private static final String NAV_LINK_SELECTOR = "nav.main-navigation-menu a.main-navigation-link:not(.home-link)";
     private static final String CHILD_LINK_SELECTOR = ".product-box a.product-name, .cms-element-product-listing a, .category-navigation a";
+    private static final String CUSTOMER_EMAIL = "customer@example.com";
+    private static final String CUSTOMER_PASSWORD = "shopware";
 
     public static void main(final String[] args) {
         final var shopUrl = DockwareContainer.start();
@@ -35,7 +38,19 @@ public class DiscoveryRunner {
                 // TODO: snapshot childUrl (task 4.x)
             });
         }
-        // TODO: authenticated crawl (task 3.2)
+        crawlAuthenticated();
+    }
+
+    private static void crawlAuthenticated() {
+        open("/account/login");
+        $("input[name='email']").setValue(CUSTOMER_EMAIL);
+        $("input[name='password']").setValue(CUSTOMER_PASSWORD);
+        $("button.btn-primary[type='submit']").click();
+
+        // TODO: snapshot /account (task 4.x)
+        open("/account");
+        // TODO: snapshot /account/order (task 4.x)
+        open("/account/order");
     }
 
     private static List<String> collectNavUrls() {
