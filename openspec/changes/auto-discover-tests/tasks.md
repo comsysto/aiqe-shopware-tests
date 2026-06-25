@@ -7,7 +7,7 @@
 
 - [x] 2.1 Create `DiscoveryRunner.java` in the test source tree; bootstrap Testcontainers + Selenide startup (reuse logic from `StorefrontSmokeTest`)
 - [x] 2.2 Implement sales channel domain patching (same `configureSalesChannelDomain` logic)
-- [ ] 2.3 Implement guest crawl entry: visit homepage and collect all top-level navigation link URLs
+- [x] 2.3 Implement guest crawl entry: visit homepage and collect all top-level navigation link URLs
 
 ## 3. DiscoveryRunner — Crawling Logic
 
