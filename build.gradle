@@ -31,6 +31,7 @@ dependencies {
     testImplementation('org.testcontainers:testcontainers')
 
     testImplementation('com.codeborne:selenide:7.6.0')
+    testImplementation('com.google.code.gson:gson:2.11.0')
     testImplementation('net.serenity-bdd:serenity-core:4.2.8')
     testImplementation('net.serenity-bdd:serenity-junit:4.2.8')
     testImplementation('org.assertj:assertj-core:3.26.3')

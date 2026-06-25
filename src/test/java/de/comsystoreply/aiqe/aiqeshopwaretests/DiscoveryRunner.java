@@ -1,9 +1,14 @@
 package de.comsystoreply.aiqe.aiqeshopwaretests;
 
 import com.codeborne.selenide.Configuration;
+import com.codeborne.selenide.Selenide;
+import com.google.gson.GsonBuilder;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +21,7 @@ import static com.codeborne.selenide.Selenide.open;
 
 public class DiscoveryRunner {
 
+    private static final Path OUTPUT_DIR = Path.of("build/discovery");
     private static final String NAV_LINK_SELECTOR = "nav.main-navigation-menu a.main-navigation-link:not(.home-link)";
     private static final String CHILD_LINK_SELECTOR = ".product-box a.product-name, .cms-element-product-listing a, .category-navigation a";
     private static final String CUSTOMER_EMAIL = "customer@example.com";
@@ -59,8 +65,28 @@ public class DiscoveryRunner {
         open(url);
         final var slug = toSlug(url);
         final var elements = extractElements();
-        // TODO: write JSON snapshot (task 4.1)
+        writeJson(url, authRequired, elements, slug);
         // TODO: write PNG screenshot (task 4.2)
+    }
+
+    private static void writeJson(final String url, final boolean authRequired,
+                                  final Map<String, List<String>> elements, final String slug) {
+        final var snapshot = Map.of(
+                "url", url,
+                "title", Selenide.title(),
+                "journey_hint", slug.replaceAll("-\\d+$", ""),
+                "auth_required", authRequired,
+                "elements", elements
+        );
+
+        final var json = new GsonBuilder().setPrettyPrinting().create().toJson(snapshot);
+
+        try {
+            Files.createDirectories(OUTPUT_DIR);
+            Files.writeString(OUTPUT_DIR.resolve(slug + ".json"), json);
+        } catch (final IOException e) {
+            throw new RuntimeException("Failed to write snapshot JSON for " + url, e);
+        }
     }
 
     static String toSlug(final String url) {
