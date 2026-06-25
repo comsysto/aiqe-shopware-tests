@@ -24,4 +24,4 @@
 
 ## 5. Claude Code Skill
 
-- [ ] 5.1 Create the `/discover-tests` skill file with orchestration logic: run `./gradlew discover`, read snapshots, read existing specs, cluster into journeys, generate proposals with human approval gate per proposal
+- [x] 5.1 Create the `/discover-tests` skill file with orchestration logic: run `./gradlew discover`, read snapshots, read existing specs, cluster into journeys, generate proposals with human approval gate per proposal
