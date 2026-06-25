@@ -3,6 +3,7 @@ package de.comsystoreply.aiqe.aiqeshopwaretests;
 import com.codeborne.selenide.Configuration;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static com.codeborne.selenide.Selenide.$;
@@ -33,10 +34,8 @@ public class DiscoveryRunner {
     private static void crawl() {
         final var navUrls = collectNavUrls();
         for (final var navUrl : navUrls) {
-            // TODO: snapshot navUrl (task 4.x)
-            firstChildUrl(navUrl).ifPresent(childUrl -> {
-                // TODO: snapshot childUrl (task 4.x)
-            });
+            snapshotPage(navUrl, false);
+            firstChildUrl(navUrl).ifPresent(childUrl -> snapshotPage(childUrl, false));
         }
         crawlAuthenticated();
     }
@@ -47,10 +46,40 @@ public class DiscoveryRunner {
         $("input[name='password']").setValue(CUSTOMER_PASSWORD);
         $("button.btn-primary[type='submit']").click();
 
-        // TODO: snapshot /account (task 4.x)
-        open("/account");
-        // TODO: snapshot /account/order (task 4.x)
-        open("/account/order");
+        snapshotPage("/account", true);
+        snapshotPage("/account/order", true);
+    }
+
+    private static void snapshotPage(final String url, final boolean authRequired) {
+        open(url);
+        final var elements = extractElements();
+        // TODO: write JSON snapshot (task 4.1)
+        // TODO: write PNG screenshot (task 4.2)
+    }
+
+    private static Map<String, List<String>> extractElements() {
+        return Map.of(
+                "navLinks", collectTexts("nav a"),
+                "buttons", collectTexts("button, input[type='submit']"),
+                "formFields", collectAttributes("input:not([type='hidden']), select, textarea", "name"),
+                "headings", collectTexts("h1, h2, h3")
+        );
+    }
+
+    private static List<String> collectTexts(final String selector) {
+        return $$(selector).asFixedIterable().stream()
+                .map(el -> el.getText().strip())
+                .filter(text -> !text.isBlank())
+                .distinct()
+                .toList();
+    }
+
+    private static List<String> collectAttributes(final String selector, final String attribute) {
+        return $$(selector).asFixedIterable().stream()
+                .map(el -> el.getAttribute(attribute))
+                .filter(val -> val != null && !val.isBlank())
+                .distinct()
+                .toList();
     }
 
     private static List<String> collectNavUrls() {
