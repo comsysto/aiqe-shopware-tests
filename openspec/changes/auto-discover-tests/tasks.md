@@ -13,7 +13,7 @@
 
 - [x] 3.1 Implement navigation crawl: for each top-level nav link, visit the page and collect one level of child links (first product or subcategory link)
 - [x] 3.2 Implement authenticated crawl: navigate to login, submit dockware default credentials (`customer@example.com` / `shopware`), then visit account overview and order history
-- [ ] 3.3 Implement DOM element extraction per page: nav links, buttons, form fields, headings — collected into a structured map
+- [x] 3.3 Implement DOM element extraction per page: nav links, buttons, form fields, headings — collected into a structured map
 - [ ] 3.4 Extend `crawlAuthenticated()` to also crawl dockware admin pages (`/admin`) using the separate admin credentials (`admin` / `shopware`)
 
 ## 4. DiscoveryRunner — Snapshot Output
