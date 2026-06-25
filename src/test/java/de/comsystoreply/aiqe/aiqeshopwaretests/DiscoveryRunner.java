@@ -32,7 +32,25 @@ public class DiscoveryRunner {
     }
 
     private static void configureSalesChannelDomain(final String shopUrl) {
-        // TODO: implement in task 2.2
+        try {
+            final var sqlResult = SHOPWARE.execInContainer(
+                    "mysql", "-h", "127.0.0.1", "-u", "root", "-proot", "shopware", "-e",
+                    "UPDATE sales_channel_domain SET url = '" + shopUrl + "' WHERE url = 'http://localhost';"
+            );
+            if (sqlResult.getExitCode() != 0) {
+                throw new RuntimeException("SQL update failed: " + sqlResult.getStderr());
+            }
+            final var cacheResult = SHOPWARE.execInContainer(
+                    "php", "/var/www/html/bin/console", "cache:clear"
+            );
+            if (cacheResult.getExitCode() != 0) {
+                throw new RuntimeException("Cache clear failed: " + cacheResult.getStderr());
+            }
+        } catch (final RuntimeException e) {
+            throw e;
+        } catch (final Exception e) {
+            throw new RuntimeException("Failed to configure Shopware sales channel domain", e);
+        }
     }
 
     private static void crawl() {
