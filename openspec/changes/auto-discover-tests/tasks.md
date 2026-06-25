@@ -20,7 +20,7 @@
 
 - [ ] 4.1 Implement JSON snapshot writer: serialize URL, title, journey hint, elements, auth_required to `build/discovery/<slug>.json`
 - [ ] 4.2 Implement screenshot capture per page using `Selenide.screenshot()` writing to `build/discovery/<slug>.png`
-- [ ] 4.3 Implement slug generation from URL path (URL-safe, collision-free)
+- [x] 4.3 Implement slug generation from URL path (URL-safe, collision-free)
 
 ## 5. Claude Code Skill
 

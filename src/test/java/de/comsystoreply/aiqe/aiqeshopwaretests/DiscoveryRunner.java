@@ -2,9 +2,13 @@ package de.comsystoreply.aiqe.aiqeshopwaretests;
 
 import com.codeborne.selenide.Configuration;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static com.codeborne.selenide.Selenide.$;
 import static com.codeborne.selenide.Selenide.$$;
@@ -16,6 +20,7 @@ public class DiscoveryRunner {
     private static final String CHILD_LINK_SELECTOR = ".product-box a.product-name, .cms-element-product-listing a, .category-navigation a";
     private static final String CUSTOMER_EMAIL = "customer@example.com";
     private static final String CUSTOMER_PASSWORD = "shopware";
+    private static final Set<String> USED_SLUGS = new HashSet<>();
 
     public static void main(final String[] args) {
         final var shopUrl = DockwareContainer.start();
@@ -52,9 +57,38 @@ public class DiscoveryRunner {
 
     private static void snapshotPage(final String url, final boolean authRequired) {
         open(url);
+        final var slug = toSlug(url);
         final var elements = extractElements();
         // TODO: write JSON snapshot (task 4.1)
         // TODO: write PNG screenshot (task 4.2)
+    }
+
+    static String toSlug(final String url) {
+        final String path;
+        try {
+            path = new URI(url).getPath();
+        } catch (final URISyntaxException e) {
+            throw new RuntimeException("Invalid URL: " + url, e);
+        }
+
+        var base = path
+                .replaceAll("^/+|/+$", "")
+                .replace("/", "-")
+                .replaceAll("[^a-zA-Z0-9-]", "-")
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "");
+
+        if (base.isBlank()) {
+            base = "home";
+        }
+
+        var slug = base;
+        var counter = 2;
+        while (USED_SLUGS.contains(slug)) {
+            slug = base + "-" + counter++;
+        }
+        USED_SLUGS.add(slug);
+        return slug;
     }
 
     private static Map<String, List<String>> extractElements() {
