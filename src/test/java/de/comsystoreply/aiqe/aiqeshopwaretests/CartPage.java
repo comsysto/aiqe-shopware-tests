@@ -16,9 +16,14 @@ public class CartPage {
         return lineItems.get(index).$("input[name='quantity']");
     }
 
+    // Quantity stepper "+" button within a specific line item (0-based index)
+    public SelenideElement quantityUpButton(final int index) {
+        return lineItems.get(index).$("button.js-btn-plus");
+    }
+
     // Remove button within a specific line item (0-based index)
     public SelenideElement removeButton(final int index) {
-        return lineItems.get(index).$("button.btn.line-item-remove-product");
+        return lineItems.get(index).$("button.line-item-remove-button");
     }
 
     // "Proceed to checkout" CTA in the cart summary

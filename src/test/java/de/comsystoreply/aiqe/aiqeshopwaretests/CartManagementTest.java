@@ -9,8 +9,10 @@ import org.junit.jupiter.api.Test;
 import static com.codeborne.selenide.CollectionCondition.size;
 import static com.codeborne.selenide.CollectionCondition.sizeGreaterThan;
 import static com.codeborne.selenide.Condition.value;
+import static com.codeborne.selenide.Condition.visible;
 import static com.codeborne.selenide.Selenide.$;
 import static com.codeborne.selenide.Selenide.$$;
+import static com.codeborne.selenide.Selenide.clearBrowserCookies;
 import static com.codeborne.selenide.Selenide.open;
 
 class CartManagementTest {
@@ -26,6 +28,8 @@ class CartManagementTest {
 
     @BeforeEach
     void addProductToCart() {
+        // Fresh session ensures an empty cart regardless of test order
+        clearBrowserCookies();
         open("/");
         dismissCookieBanner();
 
@@ -47,10 +51,9 @@ class CartManagementTest {
     @Test
     @DisplayName("CM-2: Updating line item quantity is reflected in the cart")
     void update_quantity_reflects_in_cart() {
-        cartPage.quantityInput(0).setValue("2");
-        $("button[type='submit']").click();
+        // Click the stepper "+" to increase from 1 → 2; Shopware 6 updates the cart via AJAX
+        cartPage.quantityUpButton(0).click();
 
-        open("/checkout/cart");
         cartPage.quantityInput(0).shouldHave(value("2"));
     }
 
@@ -64,7 +67,7 @@ class CartManagementTest {
 
     private static void dismissCookieBanner() {
         final var acceptButton = $(".cookie-permission-container button.btn-primary");
-        if (acceptButton.exists()) {
+        if (acceptButton.is(visible)) {
             acceptButton.click();
         }
     }
