@@ -1,0 +1,27 @@
+# Confirm cart line-item action selectors: remove button and proceed-to-checkout.
+# Adds a product, navigates to cart, waits for full render, then takes the snapshot.
+steps:
+  - open: /
+  - click: ".cookie-permission-container button.btn-primary"
+  - wait: 500
+
+  # Navigate to a category
+  - click: "nav.main-navigation-menu a.main-navigation-link:not(.home-link)"
+  - wait: 500
+
+  # Open first product
+  - click: ".product-box a.product-name"
+  - wait: 500
+
+  # Add to cart and wait for the AJAX offcanvas to settle
+  - click: "button.btn-buy"
+  - wait: 2000
+
+  # Navigate to the cart and wait for full render
+  - open: /checkout/cart
+  - wait: 1500
+
+  # Snapshot focused on cart action elements
+  - snapshot:
+      name: cart-actions
+      auth_required: false

@@ -1,0 +1,37 @@
+# Explore the add-to-cart flow and cart page.
+# Navigates from homepage → dismiss cookie banner → category → product detail → add to cart → cart page.
+steps:
+  # Land on homepage and dismiss the cookie consent banner
+  - open: /
+  - click: ".cookie-permission-container button.btn-primary"
+  - wait: 500
+
+  # Follow first nav link to a category listing
+  - click: "nav.main-navigation-menu a.main-navigation-link:not(.home-link)"
+  - wait: 500
+
+  # Snapshot the category/listing page to capture product grid selectors
+  - snapshot:
+      name: product-listing
+      auth_required: false
+
+  # Open the first product detail page
+  - click: ".product-box a.product-name"
+  - wait: 500
+
+  # Snapshot the product detail page to capture add-to-cart button and quantity selectors
+  - snapshot:
+      name: product-detail
+      auth_required: false
+
+  # Add the product to the cart
+  - click: "button.btn-buy"
+  - wait: 1500
+
+  # Navigate to the cart page
+  - open: /checkout/cart
+
+  # Snapshot the cart page — primary target of this round
+  - snapshot:
+      name: cart-page
+      auth_required: false
