@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import static com.codeborne.selenide.Selenide.$;
 import static com.codeborne.selenide.Selenide.$$;
@@ -26,6 +27,60 @@ public class DiscoveryRunner {
 
     private static final Path OUTPUT_DIR = Path.of("build/discovery");
     private static final Set<String> USED_SLUGS = new HashSet<>();
+
+    @SuppressWarnings("unchecked")
+    enum ActionType {
+        OPEN("open", value -> open((String) value)),
+        CLICK("click", value -> $((String) value).click()),
+        FILL("fill", value -> {
+            final var params = (Map<String, String>) value;
+            $(params.get("selector")).setValue(params.get("value"));
+        }),
+        SNAPSHOT("snapshot", value -> {
+            final var params = (Map<String, Object>) value;
+            final var name = (String) params.get("name");
+            final var authRequired = Boolean.TRUE.equals(params.getOrDefault("auth_required", false));
+            DiscoveryRunner.takeSnapshot(name, authRequired);
+        }),
+        WAIT("wait", value -> {
+            try {
+                Thread.sleep(((Number) value).longValue());
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+
+        final String key;
+        private final Consumer<Object> action;
+
+        ActionType(final String key, final Consumer<Object> action) {
+            this.key = key;
+            this.action = action;
+        }
+
+        void execute(final Object value) {
+            action.accept(value);
+        }
+    }
+
+    record Step(ActionType type, Object value) {
+
+        static Step from(final Map<String, Object> raw) {
+            for (final var actionType : ActionType.values()) {
+                if (raw.containsKey(actionType.key)) {
+                    return new Step(actionType, raw.get(actionType.key));
+                }
+            }
+            final var unknownKey = raw.keySet().iterator().next();
+            System.err.println("Unknown step type: '" + unknownKey + "'. Supported: open, click, fill, snapshot, wait");
+            System.exit(1);
+            throw new AssertionError("unreachable");
+        }
+
+        void execute() {
+            type.execute(value);
+        }
+    }
 
     public static void main(final String[] args) {
         if (args.length == 0) {
@@ -61,44 +116,15 @@ public class DiscoveryRunner {
             throw new RuntimeException("Failed to read script: " + scriptPath, e);
         }
 
-        final var steps = (List<Object>) script.get("steps");
+        final var steps = (List<Map<String, Object>>) script.get("steps");
         if (steps == null || steps.isEmpty()) {
             System.out.println("No steps found in script, nothing to do.");
             return;
         }
 
-        for (final var rawStep : steps) {
-            executeStep((Map<String, Object>) rawStep);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private static void executeStep(final Map<String, Object> step) {
-        if (step.containsKey("open")) {
-            open((String) step.get("open"));
-        } else if (step.containsKey("click")) {
-            final var selector = (String) step.get("click");
-            $(selector).click();
-        } else if (step.containsKey("fill")) {
-            final var params = (Map<String, String>) step.get("fill");
-            $(params.get("selector")).setValue(params.get("value"));
-        } else if (step.containsKey("snapshot")) {
-            final var params = (Map<String, Object>) step.get("snapshot");
-            final var name = (String) params.get("name");
-            final var authRequired = Boolean.TRUE.equals(params.getOrDefault("auth_required", false));
-            takeSnapshot(name, authRequired);
-        } else if (step.containsKey("wait")) {
-            final var ms = ((Number) step.get("wait")).longValue();
-            try {
-                Thread.sleep(ms);
-            } catch (final InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        } else {
-            final var unknownKey = step.keySet().iterator().next();
-            System.err.println("Unknown step type: '" + unknownKey + "'. Supported: open, click, fill, snapshot, wait");
-            System.exit(1);
-        }
+        steps.stream()
+                .map(Step::from)
+                .forEach(Step::execute);
     }
 
     private static void takeSnapshot(final String name, final boolean authRequired) {
