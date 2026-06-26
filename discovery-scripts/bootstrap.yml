@@ -1,0 +1,35 @@
+# Bootstrap discovery script.
+# Covers the homepage and authenticated account pages.
+# Nav and product page exploration: run /discover-tests in subsequent rounds.
+steps:
+  # Homepage
+  - open: /
+  - snapshot:
+      name: homepage
+      auth_required: false
+
+  # Login page (guest view)
+  - open: /account/login
+  - snapshot:
+      name: account-login
+      auth_required: false
+
+  # Authenticate with dockware default customer credentials
+  - fill:
+      selector: "input[name='email']"
+      value: "customer@example.com"
+  - fill:
+      selector: "input[name='password']"
+      value: "shopware"
+  - click: "button.btn-primary[type='submit']"
+  - wait: 1000
+
+  # Authenticated account pages
+  - snapshot:
+      name: account-overview
+      auth_required: true
+
+  - open: /account/order
+  - snapshot:
+      name: account-order-history
+      auth_required: true

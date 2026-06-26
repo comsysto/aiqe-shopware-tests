@@ -1,27 +1,29 @@
 ---
 name: discover-tests
-description: Crawl the live Shopware storefront, cluster visited pages into user journeys, diff against existing OpenSpec specs, and interactively propose new or updated specs for gaps found.
+description: Crawl the live Shopware storefront using a YAML script, inspect resulting snapshots, and hand back findings with suggested next steps. Follows a round model — one script per invocation.
 ---
 
-Auto-discover testable user journeys from a live Shopware storefront and generate OpenSpec proposals for uncovered or partially covered flows.
+Explore the live Shopware storefront by executing a YAML discovery script, then analyse the resulting snapshots and propose next steps or OpenSpec changes.
+
+## Round model
+
+Each invocation is one round:
+1. Inspect existing snapshots (if any)
+2. Decide what to explore next
+3. Write or select a YAML script in `discovery-scripts/`
+4. Execute it via `./gradlew discover -Pargs=<script-path>`
+5. Read the new snapshots
+6. Hand back to the user with findings and suggested next steps
+
+Do **not** execute multiple scripts or loop autonomously within a single invocation.
+
+---
 
 ## Steps
 
-### 1. Run the crawler
+### 1. Inspect existing snapshots
 
-Execute the Gradle discovery task. This starts the dockware container, crawls guest and authenticated pages, and writes `build/discovery/*.json` + `*.png`.
-
-Warn the user upfront: container startup takes up to 3 minutes.
-
-```bash
-./gradlew discover
-```
-
-If the task fails, report the error and stop.
-
-### 2. Read snapshots
-
-Glob `build/discovery/*.json` and read every file. Each snapshot has this structure:
+Glob `build/discovery/*.json` and read every file found. Each snapshot has this structure:
 
 ```json
 {
@@ -38,65 +40,70 @@ Glob `build/discovery/*.json` and read every file. Each snapshot has this struct
 }
 ```
 
-### 3. Read existing specs
+If no snapshots exist, skip to step 3 and use `bootstrap.yml`.
 
-Read all files matching `openspec/specs/**/*.md`. These are the currently specified capabilities. Use them as the baseline — do not propose work that is already fully covered.
+### 2. Read existing specs
 
-### 4. Cluster snapshots into user journeys
+Read all files matching `openspec/specs/**/*.md`. Use them as the baseline — do not propose work that is already fully covered.
 
-Group the snapshots by user intent, not by URL. Use `journey_hint`, page title, headings, and URL patterns to identify clusters. Aim for 3–8 journeys total. Examples:
+### 3. Decide what to explore next
 
-| Journey | Typical URLs / hints |
-|---|---|
-| Product browsing & category navigation | `/navigation/*`, nav pages |
-| Product detail | `/detail/*` |
-| Search | search results pages |
-| Cart management | `/checkout/cart` |
-| Checkout flow | `/checkout/confirm`, `/checkout/register` |
-| Account & authentication | `/account/login`, `/account`, `/account/order` |
-| Homepage | `/` |
+Based on existing snapshots and specs, choose one of:
+- **No prior snapshots** → run `discovery-scripts/bootstrap.yml`
+- **Gap in coverage** → write a new script targeting the uncovered flow (e.g. add-to-cart, search, admin login)
+- **New journey requested by user** → write a script for that specific flow
 
-Merge snapshots that clearly belong to the same flow. Discard snapshots with no user-visible content.
+### 4. Write or select a YAML script
 
-### 5. Diff against existing specs
+If writing a new script, save it to `discovery-scripts/<descriptive-name>.yml`.
 
-For each journey cluster, compare the behaviors visible in the snapshots (buttons, forms, headings, flows) against the requirements in existing specs.
+Supported steps:
 
-Classify each journey as one of:
-- **new**: no existing spec covers this journey
-- **gap**: an existing spec covers the journey but misses behaviors visible in the snapshots
-- **covered**: fully covered — skip, do not propose
+```yaml
+steps:
+  - open: /path-or-full-url
+  - click: "CSS selector"
+  - fill:
+      selector: "CSS selector"
+      value: "text to enter"
+  - snapshot:
+      name: journey-hint-slug    # used as filename and journey_hint
+      auth_required: false
+  - wait: 500                    # milliseconds
+```
 
-### 6. For each uncovered or gap journey — propose interactively
+Keep scripts flat — no loops or conditionals. Write explicit steps for each action. If a flow branches, write two separate scripts and run them in separate rounds.
 
-Work through journeys one at a time. For each:
+### 5. Execute the script
 
-a. **Show a proposal summary** to the user:
-   - Journey name (kebab-case, e.g. `cart-management`)
-   - Whether it is new or a gap update
-   - 2–4 bullet points describing what would be specified
-   - Which snapshot files informed it
+```bash
+./gradlew discover -Pargs=<script-path>
+```
 
-b. **Ask the user** to approve or reject this proposal using the **AskUserQuestion tool**.
+Warn the user upfront: container startup takes up to 3 minutes.
 
-c. **If approved**:
-   - Run `openspec new change "<journey-name>"` to scaffold the change directory
-   - Write `openspec/changes/<journey-name>/proposal.md` following the spec-driven schema (Why / What Changes / Capabilities / Impact)
-   - Announce: "Proposal created at `openspec/changes/<journey-name>/proposal.md`"
+If the task fails, report the error and stop.
 
-d. **If rejected**: skip and continue to the next journey.
+### 6. Read new snapshots
 
-### 7. Final summary
+Glob `build/discovery/*.json` again and read the newly created files. Note which `journey_hint` values are new.
 
-After all journeys have been processed, output:
-- How many proposals were created (with links to their change directories)
-- How many were skipped
-- A reminder: "Run `/opsx:apply` on any proposal to start implementation."
+### 7. Hand back to the user
+
+Present:
+- **What was explored**: which pages were visited (journey hints + URLs)
+- **What was found**: notable elements, forms, buttons — anything that suggests a testable flow
+- **Gap analysis**: compare against existing specs; call out uncovered behaviours
+- **Suggested next steps**: specific scripts or flows to explore in the next round, or an OpenSpec proposal if coverage is clear
+
+Do not proceed to the next round automatically. Wait for the user to steer.
+
+---
 
 ## Guidelines
 
-- Always re-run `./gradlew discover` — never read stale snapshots from a previous run.
-- One proposal per journey cluster, not one per URL.
-- Proposals are starting points: keep them concise (1 page). Full specs and tasks come during `/opsx:apply`.
-- If a journey is ambiguous (could be new or gap), prefer treating it as a gap and noting what is missing.
-- Do not create proposals for admin/back-office flows unless snapshots from `/admin` are present.
+- Always execute a script before reading snapshots — never read stale snapshots from a previous run without running the crawler first.
+- One script per round. If multiple flows need exploring, suggest them as options and let the user pick.
+- Keep scripts small and focused — one journey per script.
+- Use `discovery-scripts/bootstrap.yml` as the baseline for a fresh start.
+- Do not create OpenSpec proposals automatically — present findings and let the user decide.
