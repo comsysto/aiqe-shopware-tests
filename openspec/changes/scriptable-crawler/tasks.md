@@ -5,13 +5,13 @@
 
 ## 2. YAML Script Interpreter
 
-- [ ] 2.1 Rewrite `DiscoveryRunner` to read the script path from `args[0]`, fail fast with a descriptive error if absent or file not found
-- [ ] 2.2 Implement the `open` step: resolve relative paths against base URL, navigate via `Selenide.open()`
-- [ ] 2.3 Implement the `click` step: locate element by CSS selector and click; throw descriptive exception on timeout
-- [ ] 2.4 Implement the `fill` step: locate element by `selector` field, call `setValue(value)`
-- [ ] 2.5 Implement the `snapshot` step: write JSON + PNG to `build/discovery/` using the step's `name` as slug; apply collision-safe deduplication suffix
-- [ ] 2.6 Implement the `wait` step: `Thread.sleep(ms)` for the given milliseconds
-- [ ] 2.7 Implement unknown-step detection: exit with non-zero code and message before executing further steps
+- [x] 2.1 Rewrite `DiscoveryRunner` to read the script path from `args[0]`, fail fast with a descriptive error if absent or file not found
+- [x] 2.2 Implement the `open` step: resolve relative paths against base URL, navigate via `Selenide.open()`
+- [x] 2.3 Implement the `click` step: locate element by CSS selector and click; throw descriptive exception on timeout
+- [x] 2.4 Implement the `fill` step: locate element by `selector` field, call `setValue(value)`
+- [x] 2.5 Implement the `snapshot` step: write JSON + PNG to `build/discovery/` using the step's `name` as slug; apply collision-safe deduplication suffix
+- [x] 2.6 Implement the `wait` step: `Thread.sleep(ms)` for the given milliseconds
+- [x] 2.7 Implement unknown-step detection: exit with non-zero code and message before executing further steps
 
 ## 3. Bootstrap Script
 
