@@ -16,6 +16,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -82,7 +83,7 @@ public class DiscoveryRunner {
         }
     }
 
-    public static void main(final String[] args) {
+    static void main(final String[] args) {
         if (args.length == 0) {
             System.err.println("Usage: DiscoveryRunner <script-path>");
             System.err.println("Example: ./gradlew discover -Pargs=discovery-scripts/bootstrap.yml");
@@ -95,8 +96,7 @@ public class DiscoveryRunner {
             System.exit(1);
         }
 
-        final var shopUrl = DockwareContainer.start();
-        Configuration.baseUrl = shopUrl;
+        Configuration.baseUrl = DockwareContainer.start();
         Configuration.browserSize = "1280x800";
         Configuration.headless = true;
 
@@ -140,7 +140,7 @@ public class DiscoveryRunner {
                                   final String journeyHint) {
         final var snapshot = Map.of(
                 "url", url,
-                "title", Selenide.title(),
+                "title", Objects.requireNonNull(Selenide.title()),
                 "journey_hint", journeyHint,
                 "auth_required", authRequired,
                 "elements", elements
