@@ -1,0 +1,291 @@
+:toc:
+:icons: font
+
+= From Understanding to Validation: AI-drive test harness
+
+[.lead]
+Building a comprehensive test suite from scratch is weeks of work. In this post, we document how we tackled that challenge for Shopware using Claude Code as a coding partner: setting up a Serenity BDD + Testcontainers framework, writing the first functional tests for the shopping cart, and developing an AI-driven
+  discovery pipeline that crawls the live storefront and proposes new test scenarios automatically.
+
+== Introduction
+In our https://medium.com/comsystoreply/how-llms-support-product-renovation-a-case-study-b96a069dd26b?sharedUserId=florian.schoenherr[previous post], we explored how coding agents (at that point in time, the very first iterations of Calude and Codex) could help us map and understand the Shopware platform's architecture without any prior experience with it or its underlying PHP tech stack. We documented modules, extracted requirements, and validated architectural decisions—all critical first steps in a Product Renovation effort. We were both impressed with the abilities the agents already had and a little disappointed in the overall results.
+
+Despite that, we wanted to go forward and decided that a sound understanding of the underlying functional requirements would be a worthy next goal. Since it is long-standing wisdom in software development that comprehensive test suites are the truest and most profound source of functional requirements, we decided to start building one for Shopware.
+
+Creating such a test suite from scratch, however, is an extremely time-consuming effort. Even with containerization technologies making environment setup dramatically easier — we'll be using the ready-made https://hub.docker.com/r/dockware/dev[Dockware] containers that provide complete Shopware instances out of the box — the task of building a comprehensive test framework is considerable. Upfront, architectural decisions need to be made, e.g. which testing framework fits best, how test code is structured for maintainability, what patterns should be followed for page objects and test data management?
+Then comes the actual implementation work. For each feature you want to test, you need to:
+
+- Identify and locate the relevant UI elements or API endpoints
+- Understand the expected workflows and edge cases
+- Write page object classes that encapsulate element selectors and interactions
+- Create step definitions that translate business language into code
+- Implement test scenarios with proper setup and teardown
+- Handle asynchronous behaviors, loading states, and timing issues
+- Configure reporting and debugging capabilities
+
+Multiply this by the dozens or hundreds of features in an e-commerce platform, and you're looking at weeks or months of work — even for experienced test automation engineers. For developers less familiar with testing frameworks, the learning curve adds even more time.
+
+LLM-powered coding agents can help us to dramatically decrease the time required, since today they are already good enough to target the existing software and auto-discover tests and derived sets of requirements.
+
+In this second installment, we're going to document how we built a test framework and automated test discovery with the assistance of a coding agent. Our goal is pragmatic: by the end of this post, we'll have a working test framework using Serenity BDD and Testcontainers, integrated with Dockware containers for instant Shopware environments, plus a small functional test suite validating  capabilities of a core piece of any e-commerce platform, the shopping cart.
+
+This isn't about creating perfect coverage. Instead, we're establishing the foundation: project structure, configuration, patterns, and the first working tests. We'll show what worked well with LLM assistance, where we encountered problems, and how much manual intervention was required to get everything functioning correctly.
+
+More importantly, we're creating the behavioral documentation that will guide our rewrite. Every test we write isn't just validation — it's a specification that says, "This is exactly how Shopware behaves, and our JVM implementation must match this."
+
+Let's get started and see realistically what AI-assisted development brings to the test automation workflow — both its benefits and its limitations.
+
+NOTE: As a highly professional piece of open source software, Shopware _has_ a test suite, of course. You can find it at https://github.com/shopware/acceptance-test-suite[shopware/acceptance-test-suite].
++
+In this post, we deliberately ignore its existence. What we'd like to prove is that coding agents are now at a level of capability that permits us to write test suites for _any_ software we might want to rewrite and thus make sure the replacement fulfills all the functional requirements of the original software.
+
+We'll be using Claude Code for this effort. Other coding agents would certainly work too, but our experiences have shown that for our way of working, it's currently the tooling with the best effort-to-results ratio. That said, it's important to set realistic expectations from the outset.
+
+LLMs can assist with many of the traditionally time-consuming tasks: generating Maven or Gradle configurations with the necessary dependencies, providing templated examples for Serenity configuration files, suggesting CSS selectors for page elements. They excel particularly at generating boilerplate code — the kind of repetitive work that dominates test suite development:
+
+* Page object classes with element locators and interaction methods
+* Step definition files with Cucumber annotations and parameter handling
+* Test data builders and fixture classes
+
+Once you establish the conventions you want to follow, a coding agent can generate variations of these patterns relatively quickly. When a test fails due to an incorrect selector, the LLM can suggest alternatives. When you need to refactor existing code to follow a different pattern, it can help with the mechanical transformation.
+
+== The Tech Stack
+Upfront, our developers decided on the techstack to be used for testing:
+
+* Serenity BDD
+* Testcontainers
+
+=== Serenity BDD
+https://serenity-bdd.github.io/[**Serenity BDD**] is a powerful open-source test automation framework that implements BDD principles while providing comprehensive test reporting and living documentation capabilities. Built on top of popular tools like JUnit and Selenium WebDriver, Serenity extends standard BDD frameworks by automatically generating detailed, illustrated test reports that document not just whether tests passed or failed, but the entire story of how the application behaves. Its screenplay pattern promotes writing maintainable, scalable test code by modeling tests around actors, tasks, and abilities rather than page objects, making test scenarios more readable and aligned with user journeys while reducing code duplication and maintenance overhead.
+
+.Behavior-Driven Development (BDD)
+****
+BDD is a software development methodology that bridges the gap between technical and non-technical stakeholders by expressing system behavior through examples written in natural language. BDD encourages collaboration between developers, testers, and business analysts by defining application features using shared vocabulary, typically structured in "Given-When-Then" format that describes preconditions, actions, and expected outcomes.
+****
+
+=== Testcontainers
+https://testcontainers.com/[**Testcontainers**] is a Java library that provides lightweight, throwaway instances of databases, message brokers, web browsers, and virtually any other service that can run in a Docker container, specifically designed for integration testing. By leveraging Docker containerization, Testcontainers eliminate the notorious "works on my machine" problem by ensuring that tests run against the exact same environment—whether on a developer's laptop, CI/CD pipeline, or production-like staging system. Instead of relying on mocked dependencies or shared test databases that can cause flaky tests and conflicting state, Testcontainers spins up real, isolated instances of services like PostgreSQL, MongoDB, Kafka, or Redis for each test suite, automatically managing their lifecycle and cleanup.
+
+This approach solves critical environment issues such as version mismatches between development and production databases, configuration drift across testing environments, and the complexity of maintaining long-running test infrastructure. The only prerequisite is having Docker installed and running on the test environment, after which Testcontainers handles container provisioning, port mapping, network configuration, and teardown automatically, enabling developers to write integration tests that are both reliable and representative of real-world behavior without the overhead of manual infrastructure management.
+
+== Our implementation process
+For us, this project serves not only as a proof that coding agents can speed up product renovation but also permits us to refine our process for AI-driven Quality Engineering. We use it to share both what we already learned about working with coding agents and to explore new possibilities.
+
+Coding agents, especially Claude Code, can produce impressing results when given zero-shot prompts. In doing so, however, ahuman working with it will typically:
+
+* Not quite remember what the asked the agent to do, thereby forgetting the conversational process that was used to produce the code.
+* Never read a line of code that was generated by the agent, relying on its capabilities and the observable behavior of the software.
+* Not know exactly what the quality of the code is or how it exactly works.
+
+As professional software developers who are held responsible for the products they deliver, we absolutely cannot have this. Therefore, we already established a set of good practices that we apply working with agents:
+
+. Plan
+. Use a sandbox
+. Use skills
+. Review and verify
+
+=== Plan
+At a minimum, use the agent's built-in planning mode to make sure every requirement leading to the code implemented by the agent is documented somewhere, thus making the process reproducible and the code understandable.
+
+However, Claude's `/plan` mode and its equivalents in other agents are limited. They often rely on a single document (e.g.`CLAUDE.md`) that serves as a working base but not as documentation for actual requirements.
+
+Because of this, we will use https://openspec.dev/[OpenSpec] in this post. OpenSpec is a set of skills and commands for the most commonly used agent platforms and provides a `/plan` mode on steroids:
+
+. Start with a _proposal_: This is basically a user story or some other (e.g. technical) change to the existing system. Let the agent help in exploring the different possibilities and come up with a set of requirement specifications and tasks to be executed in the implementation phase. Everthing (proposal, specification and tasks) is persisted in Markdown documents under `./openspec`.
+. Review and rework the requirements and tasks or ask the agent to rework them until you are satisfied with them.
+. Let the agent implement the tasks in order.
+. Verify the implementation and let OpenSpec _archive_ the proposal, thereby merging the new spec with the existing one to keep it up to date.
+
+=== Use a sandbox
+Agents are dangerous. Depending on the harness and model used, they can misinterpret a user request, take a simple but dangerous path or simply make errors that pop up from their traing data as a good way to solve the presented problem. Because of this, an agent should never (I repeat: _never_) be given free access to the whole development (or worse, operative) environment.
+Serious agent harnesses like Claude CLI prevent this by auto-sandboxing. The agent is permitted to read everything, but can access the web or do any kind of operations only with explicity permissions. This default model has two downsides:
+
+1. Being able to read everything on the system permits the agent to scrape important files that may contain secret company documents or credentials. While a professional agent like Claude may guarantee that the data isn't misused, you still violate regulations and the trust of your customers if you allow it.
+2. After being asked the tenth time if it's OK to run `gradle` or `curl`, most human beings will start to simple click on 'allow' without really reading what they give permission for, so dangerous actions may still happen with unintended consent.
+
+To avoid these problems, Anthropic has invented a https://code.claude.com/docs/en/sandboxing[sandbox] for its agents.
+For the OpenCode agent harness, Comsysto has created its own https://github.com/comsysto/opencode-sandbox[tooling] based on Docker.
+
+Using a sandbox, you can pre-configure what an agent may do (and especially what not) and then allow it free rein in the project directory, thereby dramatically reducing the need to ask for permissions and thus increasing the speed of implementing its tasks.
+
+=== Use skills
+Skills were originally invented by Anthropic for Claude Caude but have become an https://agentskills.io/specification[open standard] for all agents.
+
+A skill is an ability and/or set of rules the agent knows to load when (and only when) it is required for a specific task, e.g:
+
+* Where to find important framework documentation.
+* How to format Java Code.
+* How to execute a specific tool required for the project.
+
+Skills we used extensively in this project:
+
+`openspec-xxx`:: The OpenSpec skills, used for the workflow described in the previous section.
+`java-coding-guidelines`:: Instructs the agent how to format  code so that it reads exactly like code we would have written ourselves. Some sample rules are:
+* Never use '*'-imports (considered a code smell in Java).
+* Use https://jspecify.dev/[JSpecify] annotations for expressing nullability.
+* Use `@DisplayName` for clear-text description of generated tests.
+`discover-tests`:: This skill is used to discover new tests for the Shopware test suite. It will be discussed later in this post beacuse it is one of its main products.
+
+=== Review and verify
+Since we still consider ourselves fully responsible for the code we deliver, all code generated by an agent should be treated like code we wrote ourselves or generated using conventional tooling. Due to that, it is mandatory that every line of code generated is thoroughly reviewed.
+
+In this experimental project, we instructed the agent using OpenSpec rules to follow this process:
+
+1. Using Git, create a long-term feature branch for any proposal it is working on.
+2. Create a short-term Git branch from this feature branch for every task. Create a Pull Request on GitHub when finished and let the user review the usually small number of changes. The big advantage of this method is that you can use GitHubs good review UI and can give feedback in the form of review comments that are understood by the agent, without polluting the code with annotations or tediously formulating verbal references to specific places in the code.
+3. Merge the PR and start on the next task until everything is implemented. Then create another PR for merging the feature branch to the **master** branch. This branch should then be reviewed by someone else.
+
+== Implementing the framework
+
+== Test Setup
+
+described in the previous section. We then gave Claude this prompt:
+
+> Setup a test suite (without writing any actual tests) that will be used for black-box testing the PHP-Software 'Shopware'. The suite shall be implemented using the framework Serenity and use Testcontainers to setup a docker container running Shopware. Use Gradle for building the software and Java for writing tests.
+
+What followed was the kind of experience we are, by now, quite used to with coding agents like Claude:
+
+. At first glance, a nice looking, comprehensive implementation of the requested software. Buildfiles, Page Objects, Test Steps etc. - all in place:
+ +
+
+. At second glance, nothing worked. At least not out of the box.
+
+Claude did some mistakes, like:
+
+* Using the wrong Java version.
+* Mixing up Kotlin and Groovy DSL for Gradle.
+* Attributing failing tests to missing docker installation instead of a wrong setup.
+* Using a builder repeatedly without assigning the returned Self-Reference.
+* Etc...
+
+In conclusion, letting Claude do the project setup saved us some time, but far less than first expected. We had to provide many corrections and even implement some of those ourselves, because the LLM wouldn't understand the real problem but insisted on non-existing issues like a missing docker installation. All in all, it required several hours to get to a point where we had a working test framework.
+
+
+
+What works like a dream, however, is the tedious and repetitive tasks of writing UI tests.
+
+> Add a test suite for the Admin Login page. Verify that the user can navigate to it, login and then see the expected UI elements.
+
+
+
+
+
+
+.. Project Structure
++
+    Maven/Gradle configuration
+    Dependencies and versions
+    Directory organization
+
+.. Testcontainers Configuration
++
+    Setting up Shopware container
+    Database container configuration
+    Network configuration between containers
+
+.. Serenity Configuration
++
+    serenity.properties setup
+    Reporting configuration
+    WebDriver configuration
+
+. Building Your First Test with Claude Code
+.. Defining Test Scenarios
++
+    Writing user stories and acceptance criteria
+    Using Claude Code to generate Gherkin scenarios
+    Best practices for scenario design
+
+.. Implementing Page Objects
++
+    Page Object Model pattern
+    Leveraging Claude Code for boilerplate generation
+    Shopware-specific page elements
+
+.. Writing Step Definitions
++
+    Connecting Gherkin to code
+    Using Claude Code for step implementation
+    Handling Shopware API interactions
+
+. Advanced Testing Patterns
+.. Data Management
++
+    Test data preparation strategies
+    Using Testcontainers for database seeding
+    Managing test isolation
+
+.. API vs UI Testing
++
+    When to test via API vs UI
+    Combining both approaches
+    Performance considerations
+
+.. Authentication and Session Management
++
+    Handling Shopware authentication
+    Managing customer sessions
+    Testing admin panel functionality
+
+. Optimizing Test Execution
+.. Parallel Execution
++
+    Configuring parallel test runs
+    Container resource management
+    Avoiding test interference
+
+.. CI/CD Integration
++
+    Jenkins/GitLab CI/GitHub Actions setup
+    Docker-in-Docker considerations
+    Artifact and report publishing
+
+.. Performance Optimization
++
+    Container startup optimization
+    Reusing containers when appropriate
+    Test execution time benchmarks
+
+. Leveraging Claude Code Throughout the Process
+.. Initial Setup
++
+    Generating configuration files
+    Creating project structure
+    Troubleshooting dependency issues
+
+.. Test Development
++
+    Accelerating test writing
+    Debugging failing tests
+    Refactoring existing tests
+
+.. Maintenance and Evolution
++
+    Adapting tests to Shopware updates
+    Expanding test coverage
+    Code review assistance
+
+. Real-World Example: Testing a Checkout Flow
++
+    Complete walkthrough of a typical scenario
+    Code examples with annotations
+    Common pitfalls and solutions
+
+. Best Practices and Lessons Learned
++
+    Do's and don'ts of testing third-party platforms
+    Maintaining test stability
+    Balancing coverage and execution time
+    Documentation strategies
+
+. Conclusion and Next Steps
++
+    Summary of benefits achieved
+    Resources for further learning
+    Community and support channels
+
+
+However — and this is crucial — the generated code is rarely correct on the first attempt. In our experience, a significant amount of time goes into correcting mistakes: incorrect dependency versions, misunderstood framework APIs, flawed selector strategies, subtle logical errors in test implementations. Many of these issues require manual debugging and would be extremely difficult to identify without deep expertise in Java development and the specific tools being used.
+
+The LLM is not replacing developer expertise; at best, it's shifting where that expertise is applied. Instead of writing boilerplate from scratch, you're reviewing, correcting, and refining generated code. Whether this is actually faster depends heavily on your proficiency with the tech stack. For experienced developers, the assistance can be valuable. For those less familiar with Java, Serenity, or Testcontainers, the errors introduced by the LLM might actually slow down progress rather than accelerate it.
+
