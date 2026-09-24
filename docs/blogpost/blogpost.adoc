@@ -1,18 +1,18 @@
 :toc:
 :icons: font
 
-= From Understanding to Validation: AI-drive test harness
+= From Understanding to Validation: AI-driven test harness
 
 [.lead]
 Building a comprehensive test suite from scratch is weeks of work. In this post, we document how we tackled that challenge for Shopware using Claude Code as a coding partner: setting up a Serenity BDD + Testcontainers framework, writing the first functional tests for the shopping cart, and developing an AI-driven
   discovery pipeline that crawls the live storefront and proposes new test scenarios automatically.
 
 == Introduction
-In our https://medium.com/comsystoreply/how-llms-support-product-renovation-a-case-study-b96a069dd26b?sharedUserId=florian.schoenherr[previous post], we explored how coding agents (at that point in time, the very first iterations of Calude and Codex) could help us map and understand the Shopware platform's architecture without any prior experience with it or its underlying PHP tech stack. We documented modules, extracted requirements, and validated architectural decisions — all critical first steps in a Product Renovation effort. We were both impressed with the agents' abilities and a little disappointed in the overall results.
+In our https://medium.com/comsystoreply/how-llms-support-product-renovation-a-case-study-b96a069dd26b?sharedUserId=florian.schoenherr[previous post], we explored how coding agents (at that point in time, the very first iterations of Claude and Codex) could help us map and understand the Shopware platform's architecture without any prior experience with it - or its underlying PHP tech stack. We documented modules, extracted requirements, and validated architectural decisions — all critical first steps in a Product Renovation effort. We were both impressed with the agents' abilities and a little disappointed in the overall results, because they were still far from game-changing.
 
 Despite that, we wanted to go forward and decided that a sound understanding of the underlying functional requirements would be a worthy next goal. Since it is long-standing wisdom in software development that comprehensive test suites are the truest and most profound source of functional requirements, we decided to start building one for Shopware.
 
-Creating such a test suite from scratch is an extremely time-consuming effort. Even with containerization technologies making environment setup dramatically easier — we'll be using the ready-made https://hub.docker.com/r/dockware/dev[Dockware] containers that provide complete Shopware instances out of the box — the task of building a comprehensive test framework is considerable. Upfront, architectural decisions need to be made, e.g. which testing framework fits best, how test code is structured for maintainability, what patterns should be followed for page objects and test data management?
+Creating such a test suite from scratch is an extremely time-consuming effort. Even with containerization technologies making environment setup dramatically easier — we'll be using the ready-made https://hub.docker.com/r/dockware/dev[Dockware] containers that provide complete Shopware instances out of the box — the task of building a comprehensive test framework is considerable. Upfront, architectural decisions need to be made, e.g. which testing framework fits best, how test code is structured for maintainability, what patterns should be followed for page objects and test data management.
 Then comes the actual implementation work. For each feature you want to test, you need to:
 
 - Identify and locate the relevant UI elements or API endpoints
@@ -35,7 +35,7 @@ More importantly, we're creating the behavioral documentation that will guide ou
 
 Let's get started and see realistically what AI-assisted development brings to the test automation workflow — both its benefits and its limitations.
 
-As a highly professional piece of open source software, Shopware _has_ a test suite, of course. You can find it at https://github.com/shopware/acceptance-test-suite[shopware/acceptance-test-suite].
+TIP: As a highly professional piece of open source software, Shopware _has_ a test suite, of course. You can find it at https://github.com/shopware/acceptance-test-suite[shopware/acceptance-test-suite].
  +
 However, in this post, we deliberately ignore its existence. We want to prove that coding agents are now at a level of capability that permits us to write tests for _any_ software, facilitating a rewrite using modern technology with the safety net of high test coverage even if there are no tests in the beginning.
 
@@ -96,8 +96,10 @@ Because of this, we will use https://openspec.dev/[OpenSpec] in this post. OpenS
 . Let the agent implement the tasks in order.
 . Verify the implementation and let OpenSpec _archive_ the proposal, thereby merging the new spec with the existing one to keep it up to date.
 
+For more details on SDD (Specification-Driven Development) in general and OpenSpec in particular, please see our https://medium.com/comsystoreply/from-prompts-to-specs-41a283a3bad6[related blog post].
+
 === Use a sandbox
-Agents are dangerous. Depending on the harness and model used, they can misinterpret a user request, take a simple but dangerous path, or simply make errors that pop up from their training data as a good way to solve the presented problem. Because of this, an agent should never (I repeat: _never_) be given free access to a development (or worse, operative) environment.
+Agents are dangerous. Depending on the harness and model used, they can misinterpret a user request, take a simple but dangerous path, or simply make errors that pop up from their training data as a good way to solve the presented problem. Because of this, an agent should never (I repeat: _never_) be given free access to a development  environment.
 Serious agent harnesses like Claude CLI prevent this by auto-sandboxing. The agent is permitted to read everything, but can access the web or do any kind of operations only with explicit permissions. This default model has two downsides:
 
 1. Being able to read everything on the system permits the agent to scrape important files that may contain secret company documents or credentials. While a professional agent like Claude may guarantee that the data isn't misused, permitting this may still violate regulations and customers' trust.
@@ -129,7 +131,7 @@ Skills we used extensively in this project:
 === Review and verify
 Since we still consider ourselves fully responsible for the code we deliver, all code generated by an agent should be treated like code we wrote ourselves or generated using conventional tooling. Due to that, it is mandatory that every line of code generated is thoroughly reviewed.
 
-In this experimental project, we instructed the agent using OpenSpec rules to follow this process:
+In this experimental project, we instructed the agent using OpenSpec rules (similar to agent skills, but not quite the same because the specifically hook into the OpenSpec lifecycle) to follow this process:
 
 1. Using Git, create a long-term feature branch for any proposal it is working on.
 2. Create a short-term Git branch from this feature branch for every task. Create a Pull Request on GitHub when finished and let the user review the usually small number of changes. The big advantage of this method is that you can use GitHub's decent review UI and can give feedback in the form of review comments that are understood by the agent, without polluting the code with annotations or tediously formulating verbal references to specific pieces of code.
@@ -141,10 +143,79 @@ CAUTION: This consolidated PR should be reviewed by another team member, the way
 
 === Implementing the test harness
 
-We started simply by opening IntelliJ IDEA and let it generate a project for testing with Serenity BDD. Why spend precious tokens letting Claude do the work when everything is in place?
+We started simply and old-school: by opening IntelliJ IDEA and let it generate a skeleton project for testing with Serenity BDD. Why spend precious tokens letting Claude do the work when everything is already in place?
 
-This is part of an important lesson we learned: If you can do something using traditional automation scripts or tools, use them! They are faster, cheaper and much more reliable than any coding agent and always produce the exact same results.
+This is part of an important lesson we learned: If you can do something using traditional automation scripts or tools, use them! They are faster, cheaper and much more reliable than any coding agent - and they produce always the exact same results!
 
 After generating the skeleton, we created an link:../../openspec/changes/archive/2026-06-24-shopware-storefront-smoke-test/proposal.md[OpenSpec proposal] describing what we wanted. Using the OpenSpec skillset, Claude directly generated a link:../../openspec/changes/archive/2026-06-24-shopware-storefront-smoke-test/design.md[Design Document] and a list of link:../../openspec/changes/archive/2026-06-24-shopware-storefront-smoke-test/tasks.md[implementation tasks].
+
+Applying this change, we soon had a working test framework that could:
+
+* Start Dockware
+* Start Selenium and a Chromium Browser
+* Look over the storefront page and implement some tests we told it to write
+
+So, are we done already? Did we fulfill our hope the AI is a game changer for implementing UI tests?
+
+You may guess; the answer is a clear NO. The reason is that implementing test is only a part of the game. Tests are only valuable when they cover all code paths, and therefore, to facilitate an actual _rewrite_ of a large legacy software, it must be _complete_. To achieve that completeness, you must actually try the software out, crawl through every functionality and record its behavior in a test case.
+
+What better work could there be for a software agent?
+
+So, we let an agent crawl the UI and discover new test cases. The main difficulty here is that the agent needs to start somewhere and should not cover the same workflow multiple times.
+
+=== Automated test discovery
+
+==== The intent
+The idea behind automated discovery is simple: instead of a human deciding what to test next, the agent looks at the running software, figures out which user journeys it offers, compares them to what our specifications already cover, and suggests the missing pieces. Test coverage thereby becomes an observable and repeatable process rather than a matter of someone remembering to write the next test.
+
+We had three requirements from the start:
+
+* **Separate facts from interpretation.** Collecting data about the storefront is deterministic work that belongs in plain Java code. Interpreting that data — which pages form a journey, what is already specified, what is missing — is where an LLM shines. The two should not be mixed.
+* **Think in journeys, not pages.** Shopware has many URLs that are merely variations of the same flow (`/clothing` and `/electronics` are both "product listing"). One proposal per URL would bury us in near-duplicates, so the agent has to cluster pages into user journeys.
+* **Be re-runnable.** Every run must take the existing specifications into account and propose only gaps or updates, never the same workflow twice.
+
+It took us two iterations to get there.
+
+==== First iteration: a hard-coded crawler
+The link:../../openspec/changes/archive/2026-06-25-auto-discover-tests/proposal.md[first proposal] split the work into two parts. A `DiscoveryRunner` class — deliberately a separate Gradle task (`./gradlew discover`) and not a test, since it has no assertions and must not pollute the Serenity reports — reused the existing Testcontainers and Selenide setup. It started a Dockware container, visited the homepage, collected the navigation links, followed each of them one level deep, and finally logged in with the Dockware default customer to visit the account pages. For every page it wrote a JSON snapshot (URL, title, navigation links, buttons, form fields, headings) and a full-page screenshot to `build/discovery/`.
+
+On top of that, a Claude Code skill, `/discover-tests`, ran the crawler, read the snapshots, compared them with the existing specifications under `openspec/specs/`, and wrote one OpenSpec proposal per uncovered journey.
+
+The pipeline worked, but it quickly revealed its blind spot: the crawler could only _follow links_. It never clicked a button, filled in a form or triggered an AJAX request. The shopping cart, the checkout, anything hidden behind a modal dialog or created by client-side state was structurally invisible to it. And every attempt to fix this would have meant adding yet another hard-coded crawl strategy in Java — the runner was trying to be a clever, general-purpose explorer, and it was clearly the wrong place for that intelligence.
+
+==== Second iteration: a scriptable crawler
+The link:../../openspec/changes/archive/2026-06-26-scriptable-crawler/proposal.md[second proposal] turned this around: the agent is the intelligence, and the runner becomes a dumb executor. All crawl logic was removed from `DiscoveryRunner` and replaced by a small interpreter for YAML scripts with a deliberately minimal vocabulary:
+
+[source,yaml]
+----
+steps:
+  - open: /account/login
+  - fill:
+      selector: "input[name='email']"
+      value: "customer@example.com"
+  - click: "button.btn-primary[type='submit']"
+  - wait: 1000
+  - snapshot:
+      name: account-overview
+      auth_required: true
+----
+
+There are no loops and no conditionals. If a flow branches, the agent simply writes two scripts. A flat list of steps is easy for a human to review, safe to execute and trivial to parse — and writing explicit sequences like this is exactly what LLMs are good at. Scripts are committed to a `discovery-scripts/` directory, so the repository also records _what_ has been explored and how. The previous hard-coded crawl survives as `bootstrap.yml`, the starting point for a fresh discovery.
+
+The second important change was the _round model_. Instead of running the whole pipeline in one go, each invocation of the skill does exactly one round and then hands back to the developer. This avoids runaway sessions, makes failures easy to debug, and — most importantly — keeps a human in charge of the direction in which the exploration goes.
+
+==== How it works
+The following diagram shows one round of the current discovery process:
+
+image::../presentation/discovery-process-comsysto-inline.svg[Automated test discovery process]
+
+. *Invoke* — The developer runs `/discover-tests` in Claude Code, optionally naming a journey they want explored.
+. *Script* — The skill reads the snapshots and specifications that already exist and decides what to explore next. On a fresh start, it uses `bootstrap.yml`; otherwise, it writes a new, focused script for an uncovered flow, such as adding a product to the cart.
+. *Crawl* — `./gradlew discover` boots a fresh Shopware instance in a Dockware container via Testcontainers, and `DiscoveryRunner` executes the script step by step with Selenide.
+. *Snapshot* — At every `snapshot` step, the runner writes the page's relevant DOM elements as JSON and a full-page screenshot as PNG to `build/discovery/`.
+. *Analyze* — Back in Claude Code, the skill reads the new snapshots, clusters the pages into user journeys and compares them against the existing specifications.
+. *Propose* — The developer gets a summary of what was explored, what was found, where the gaps are, and suggestions for the next round. The skill does not create OpenSpec proposals by itself: the developer decides which findings become a new or updated proposal, which then goes through the usual OpenSpec workflow and pull-request review.
+
+The developer then either starts the next round or turns the findings into a proposal — which is exactly how the link:../../openspec/changes/archive/2026-06-26-cart-management/proposal.md[cart management tests] came into being.
 
 
