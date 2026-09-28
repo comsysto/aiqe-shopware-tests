@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -41,7 +42,8 @@ public class DiscoveryRunner {
             final var params = (Map<String, Object>) value;
             final var name = (String) params.get("name");
             final var authRequired = Boolean.TRUE.equals(params.getOrDefault("auth_required", false));
-            DiscoveryRunner.takeSnapshot(name, authRequired);
+            final var capture = (List<String>) params.get("capture");
+            DiscoveryRunner.takeSnapshot(name, authRequired, capture);
         }),
         WAIT("wait", value -> {
             try {
@@ -127,24 +129,27 @@ public class DiscoveryRunner {
                 .forEach(Step::execute);
     }
 
-    private static void takeSnapshot(final String name, final boolean authRequired) {
+    private static void takeSnapshot(final String name, final boolean authRequired, final List<String> capture) {
         final var url = WebDriverRunner.getWebDriver().getCurrentUrl();
         final var slug = toSlug(name);
         final var elements = extractElements();
-        writeJson(url, authRequired, elements, slug, name);
+        final var captured = capture == null ? null : captureOuterHtml(capture);
+        writeJson(url, authRequired, elements, captured, slug, name);
         writeScreenshot(slug);
     }
 
     private static void writeJson(final String url, final boolean authRequired,
-                                  final Map<String, List<String>> elements, final String slug,
-                                  final String journeyHint) {
-        final var snapshot = Map.of(
-                "url", url,
-                "title", Objects.requireNonNull(Selenide.title()),
-                "journey_hint", journeyHint,
-                "auth_required", authRequired,
-                "elements", elements
-        );
+                                  final Map<String, List<String>> elements, final Map<String, List<String>> captured,
+                                  final String slug, final String journeyHint) {
+        final var snapshot = new LinkedHashMap<String, Object>();
+        snapshot.put("url", url);
+        snapshot.put("title", Objects.requireNonNull(Selenide.title()));
+        snapshot.put("journey_hint", journeyHint);
+        snapshot.put("auth_required", authRequired);
+        snapshot.put("elements", elements);
+        if (captured != null) {
+            snapshot.put("captured", captured);
+        }
 
         final var json = new GsonBuilder().setPrettyPrinting().create().toJson(snapshot);
 
@@ -193,6 +198,16 @@ public class DiscoveryRunner {
                 "formFields", collectAttributes("input:not([type='hidden']), select, textarea", "name"),
                 "headings", collectTexts("h1, h2, h3")
         );
+    }
+
+    private static Map<String, List<String>> captureOuterHtml(final List<String> selectors) {
+        final var captured = new LinkedHashMap<String, List<String>>();
+        for (final var selector : selectors) {
+            captured.put(selector, $$(selector).asFixedIterable().stream()
+                    .map(el -> el.getAttribute("outerHTML"))
+                    .toList());
+        }
+        return captured;
     }
 
     private static List<String> collectTexts(final String selector) {
