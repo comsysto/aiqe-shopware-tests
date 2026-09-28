@@ -44,8 +44,14 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
+// The storefront enables `scroll-behavior: smooth` unless the browser prefers reduced motion. Selenide
+// retries a click every 200 ms and every retry restarts the scroll animation, so a link that is
+// initially off-screen is never reached and the click is intercepted until the timeout.
+def chromeArgs = '--force-prefers-reduced-motion'
+
 test {
     useJUnitPlatform()
+    systemProperty 'chromeoptions.args', chromeArgs
 }
 
 task discover(type: JavaExec, dependsOn: testClasses) {
@@ -53,6 +59,7 @@ task discover(type: JavaExec, dependsOn: testClasses) {
     description = 'Crawls the Shopware storefront and writes JSON + PNG snapshots to build/discovery/'
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'de.comsystoreply.aiqe.aiqeshopwaretests.DiscoveryRunner'
+    systemProperty 'chromeoptions.args', chromeArgs
     if (project.hasProperty('args')) {
         args project.property('args')
     }

@@ -17,8 +17,7 @@ steps:
   - click: ".login-submit button[type='submit']"
   - wait: 2000
 
-  # Clicks on below-the-fold links are flaky here (click point ends up outside the viewport),
-  # so open a demo product directly instead of navigating through the category listing
+  # Open a demo product directly instead of navigating through the category listing
   - open: /Main-product-with-properties/SWDEMO10007.1
   - wait: 1500
 
@@ -55,8 +54,7 @@ steps:
 
   - click: "#tos"
   - wait: 500
-  # The submit button sits far below the fold and is not scrolled into view before the click;
-  # the fragment makes the browser scroll to it without reloading the page
+  # The fragment scrolls the far-below-the-fold submit button into view without reloading the page
   - open: /checkout/confirm#confirmFormSubmit
   - wait: 500
   - click: "#confirmFormSubmit"
