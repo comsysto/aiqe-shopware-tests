@@ -1,7 +1,7 @@
 ## 1. Discovery tooling
 
-- [ ] 1.1 Extend `DiscoveryRunner`'s `snapshot` step with the optional `capture` selector list, writing outer HTML under `captured` (crawler-script-runner: captured selectors, unmatched selector, snapshot without capture).
-- [ ] 1.2 Update the `discover-tests` skill's supported-steps documentation with the `capture` option.
+- [x] 1.1 Extend `DiscoveryRunner`'s `snapshot` step with the optional `capture` selector list, writing outer HTML under `captured` (crawler-script-runner: captured selectors, unmatched selector, snapshot without capture).
+- [x] 1.2 Update the `discover-tests` skill's supported-steps documentation with the `capture` option.
 
 ## 2. Discovery
 
