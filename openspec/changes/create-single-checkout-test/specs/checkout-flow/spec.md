@@ -22,7 +22,7 @@ A logged-in customer SHALL be able to accept the terms and conditions on the con
 - **THEN** the storefront navigates to `/checkout/finish`
 
 ### Requirement: Finish page reflects the confirmed order
-The finish page SHALL show an order number and the same order details that were shown on the confirm page: line items (name, product number, quantity, unit price, line total), subtotal, shipping cost, tax, grand total, payment method, shipping method, billing address and shipping address.
+The finish page SHALL show an order number and the same order details that were shown on the confirm page: line items (name, product number, quantity, line total, line tax), subtotal, shipping cost, tax, grand total, payment method, shipping method, billing address and shipping address.
 
 #### Scenario: Finish page matches confirm page
 - **WHEN** the order is submitted from the confirm page

@@ -19,10 +19,10 @@
 
 ## 4. Checkout page objects
 
-- [ ] 4.1 Add `OrderSummary` value object (line items with name, product number, quantity, unit price, line total; subtotal; shipping cost; tax; grand total; payment method; shipping method; billing address; shipping address).
-- [ ] 4.2 Add `CheckoutPage` (`/checkout/confirm`): read `OrderSummary`, accept T&C, submit order.
-- [ ] 4.3 Add `FinishPage` (`/checkout/finish`): read `OrderSummary` and order number.
-- [ ] 4.4 Add `AccountOrderPage` (`/account/order`): open and check whether an order number is listed.
+- [x] 4.1 Add `OrderSummary` value object (line items with name, product number, quantity, line total, line tax; subtotal; shipping cost; tax; grand total; payment method; shipping method; billing address; shipping address).
+- [x] 4.2 Add `CheckoutPage` (`/checkout/confirm`): read `OrderSummary`, accept T&C, submit order.
+- [x] 4.3 Add `FinishPage` (`/checkout/finish`): read `OrderSummary` and order number.
+- [x] 4.4 Add `AccountOrderPage` (`/account/order`): open and check whether an order number is listed.
 
 ## 5. Test implementation
 

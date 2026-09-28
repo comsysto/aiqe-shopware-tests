@@ -40,7 +40,7 @@ Product detail: name `.product-detail-name`, number `.product-detail-ordernumber
 - Quantity is an input on confirm and text on finish; the confirm line item also shows a "Delivery period" that finish omits, so compare line-item fields individually, never the raw element text.
 - The order number needs the `data-order-number` attribute, not the `#`-prefixed text.
 
-**Open issue — unit price:** neither the confirm nor the finish page renders a unit price (only line tax and line total). `OrderSummary.unitPrice` as written in the spec cannot be read from them. The account order history does show it (`.line-item-unit-price-value`). Proposed fix: drop unit price from the confirm/finish comparison and keep line total and line tax; decide before task 4.1.
+**Resolved — unit price:** neither the confirm nor the finish page renders a unit price (only line tax and line total), so it cannot be part of the confirm/finish comparison. Decision (2026-09-28): `OrderSummary` line items carry line total and line tax instead of unit price. The account order history does show a unit price (`.line-item-unit-price-value`) but it is not compared.
 
 **Interaction notes:**
 - The cookie banner is dismissed once per browser session and stays hidden afterwards, so `CheckoutTest` (which clears cookies per test) dismisses it once, on the login page.
@@ -84,7 +84,7 @@ Product detail: name `.product-detail-name`, number `.product-detail-ordernumber
   name, number    OrderSummary (confirm)  ==   OrderSummary (finish)   order number listed
                   line items match product      + order number present
   ```
-  `OrderSummary` holds line items (name, product number, quantity, unit price, line total), subtotal, shipping cost, tax, grand total, payment method, shipping method, billing and shipping address. `CheckoutPage` and `FinishPage` each build one from their page; the test compares them with AssertJ `usingRecursiveComparison()`, so any field that differs is reported by name. The confirm-page line items are additionally checked against the product name/number read on the product detail page and quantity 1. Monetary values are compared as displayed strings unless discovery shows confirm and finish format them differently, in which case they are parsed to `BigDecimal`.
+  `OrderSummary` holds line items (name, product number, quantity, line total, line tax), subtotal, shipping cost, tax, grand total, payment method, shipping method, billing and shipping address. `CheckoutPage` and `FinishPage` each build one from their page; the test compares them with AssertJ `usingRecursiveComparison()`, so any field that differs is reported by name. The confirm-page line items are additionally checked against the product name/number read on the product detail page and quantity 1. Monetary values are compared as displayed strings unless discovery shows confirm and finish format them differently, in which case they are parsed to `BigDecimal`.
 
 - **Order persistence checked via account order history**: after the finish page, the test opens `/account/order` and asserts the order number from the finish page is listed. This proves the order was persisted, not only rendered.
 
