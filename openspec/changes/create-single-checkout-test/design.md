@@ -44,7 +44,7 @@ Product detail: name `.product-detail-name`, number `.product-detail-ordernumber
 
 **Interaction notes:**
 - The cookie banner is dismissed once per browser session and stays hidden afterwards, so `CheckoutTest` (which clears cookies per test) dismisses it once, on the login page.
-- Clicks on far below-the-fold elements (product link on the category page, `#confirmFormSubmit`) intermittently fail with "click intercepted" because they are not scrolled into view. Page objects scroll them into view before clicking (`scrollIntoCenter()`).
+- Clicks on elements that start outside the viewport (product link on the category page, `#confirmFormSubmit`) intermittently failed with "click intercepted". Root cause, measured at the failing moment: the storefront sets `scroll-behavior: smooth`, and Selenide's 200 ms click retries each restart the scroll animation (`scrollY` stuck at ~7 px, cookie banner already hidden), so the element is never reached. Neither an extra `scrollIntoCenter()` nor waiting helps. Fix: Chrome is started with `--force-prefers-reduced-motion` (`chromeoptions.args` in `build.gradle` for `test` and `discover`), which makes the storefront's Bootstrap CSS drop smooth scrolling. No page-object workarounds are needed.
 - The demo customer's cart is empty after a fresh login; the cart page's `button.line-item-remove-button` (already used by `CartPage.removeButton`) is the way to clear a restored cart, so task 5.1 reuses `CartPage` and needs no new selectors.
 
 ## Goals / Non-Goals

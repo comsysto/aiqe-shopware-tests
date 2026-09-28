@@ -12,10 +12,10 @@
 
 ## 3. Customer session (cross-cutting login)
 
-- [ ] 3.1 Write an ADR in `docs/adr/` for login as a cross-cutting concern (`CustomerSession.loginAs(Customer)`, UI login now, swappable mechanism later).
-- [ ] 3.2 Add `Customer` (email, password) with `Customer.DEMO`.
-- [ ] 3.3 Add `LoginPage` page object for `/account/login` using `#loginMail`, `#loginPassword`, `.login-submit button[type='submit']`.
-- [ ] 3.4 Add `CustomerSession.loginAs(Customer)` using `LoginPage` and asserting arrival on the account overview.
+- [x] 3.1 Write an ADR in `docs/adr/` for login as a cross-cutting concern (`CustomerSession.loginAs(Customer)`, UI login now, swappable mechanism later).
+- [x] 3.2 Add `Customer` (email, password) with `Customer.DEMO`.
+- [x] 3.3 Add `LoginPage` page object for `/account/login` using `#loginMail`, `#loginPassword`, `.login-submit button[type='submit']`.
+- [x] 3.4 Add `CustomerSession.loginAs(Customer)` using `LoginPage` and asserting arrival on the account overview.
 
 ## 4. Checkout page objects
 
