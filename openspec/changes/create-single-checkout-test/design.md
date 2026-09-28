@@ -8,7 +8,44 @@ A first discovery round (`discovery-scripts/explore-login.yml`, run 2026-09-28 a
 - The seeded demo customer `test@example.com` / `shopware` exists; login lands on `/account` ("Overview").
 - On a fresh database the demo customer's cart is empty right after login.
 
-The confirm, finish and account-order pages are **not yet grounded**. The existing `build/discovery/account-order` snapshot was taken while logged out and shows the login page, not the order history. The current snapshot format (nav links, buttons, form field names, headings) also cannot ground selectors for prices, line items, addresses or order numbers.
+The confirm, finish and account-order pages were **not grounded** before the second discovery round. The old `build/discovery/account-order` snapshot was taken while logged out and shows the login page, not the order history, and the original snapshot format could not ground selectors for prices, line items, addresses or order numbers (hence the `capture` option).
+
+### Discovery findings — `explore-checkout.yml` (2026-09-28, dockware demo data)
+
+Demo defaults on a fresh container: payment "Cash on delivery", shipping "Standard", both addresses "Max Mustermann, Musterstraße 1, 12345 Musterstadt, Germany", first placed order number `10000`.
+
+| Field | Confirm `/checkout/confirm` | Finish `/checkout/finish?orderId=…` |
+|---|---|---|
+| Line items | `.checkout-main .line-item` | `.line-item` (has `no-remove-button`) |
+| Name | `.line-item-label` | `.line-item-label` |
+| Product number | `.line-item-product-number` — text `Product number: SWDEMO10007.1` | same |
+| Quantity | `input[name='quantity']` **value** | plain text in `.line-item-quantity-select-wrapper div` |
+| Line total | `.line-item-total-price-value` | same |
+| Line tax | `.line-item-tax-price` (text `incl. VAT €3.19`) | same |
+| Subtotal / shipping | 1st / 2nd `.checkout-aside-summary-value` in `.checkout-aside-summary-list` | same |
+| Grand total | `dd.checkout-aside-summary-total` | same |
+| Net / tax | `dd.summary-net` / `dd.summary-tax` | same |
+| Payment method | `.payment-method-input:checked` → its label `strong` | `.finish-order-details p` whose `strong` reads "Payment method:" |
+| Shipping method | `.shipping-method-input:checked` → its label `strong` | `.finish-order-details p` whose `strong` reads "Shipping method:" |
+| Shipping address | `.confirm-address-shipping .address` | `.finish-address-shipping .address` |
+| Billing address | `.confirm-address-billing` | `.finish-address-billing .address` |
+| T&C / submit | `#tos` / `#confirmFormSubmit` | — |
+| Order number | — | `.finish-ordernumber` attribute `data-order-number` (text is `Your order number: #10000`) |
+
+Product detail: name `.product-detail-name`, number `.product-detail-ordernumber` (whitespace-padded), price `.product-detail-price`, buy `button.btn-buy`. Account order history: order number `.order-table-header-order-number .order-table-body-value` (text `10000`); `.order-item-detail` holds the details behind "Show details". All money is rendered as `€19.99` (whitespace-padded) on both pages, so displayed strings compare after trimming.
+
+**Differences the page objects must normalise** (confirm vs finish):
+- Billing address on confirm reads "Same as shipping address" when both addresses are equal; on finish the full address is shown. `CheckoutPage` resolves it to the shipping address.
+- Payment and shipping method are radio groups on confirm but "label: value" paragraphs on finish; strip the label.
+- Quantity is an input on confirm and text on finish; the confirm line item also shows a "Delivery period" that finish omits, so compare line-item fields individually, never the raw element text.
+- The order number needs the `data-order-number` attribute, not the `#`-prefixed text.
+
+**Open issue — unit price:** neither the confirm nor the finish page renders a unit price (only line tax and line total). `OrderSummary.unitPrice` as written in the spec cannot be read from them. The account order history does show it (`.line-item-unit-price-value`). Proposed fix: drop unit price from the confirm/finish comparison and keep line total and line tax; decide before task 4.1.
+
+**Interaction notes:**
+- The cookie banner is dismissed once per browser session and stays hidden afterwards, so `CheckoutTest` (which clears cookies per test) dismisses it once, on the login page.
+- Clicks on far below-the-fold elements (product link on the category page, `#confirmFormSubmit`) intermittently fail with "click intercepted" because they are not scrolled into view. Page objects scroll them into view before clicking (`scrollIntoCenter()`).
+- The demo customer's cart is empty after a fresh login; the cart page's `button.line-item-remove-button` (already used by `CartPage.removeButton`) is the way to clear a restored cart, so task 5.1 reuses `CartPage` and needs no new selectors.
 
 ## Goals / Non-Goals
 
