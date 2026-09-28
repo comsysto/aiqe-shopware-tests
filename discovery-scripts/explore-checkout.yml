@@ -1,0 +1,92 @@
+# Ground the selectors for the checkout journey of the logged-in demo customer.
+# Verifies: product detail name/number, confirm page (line items, totals, payment/shipping method,
+# addresses, T&C checkbox, submit button), finish page (order number and the same details) and
+# the account order history. Runs against an ephemeral container, so the placed order is harmless.
+# Capture selectors are educated guesses; an unmatched selector is recorded as an empty list.
+steps:
+  - open: /account/login
+  - click: ".cookie-permission-container button.btn-primary"
+  - wait: 500
+
+  - fill:
+      selector: "#loginMail"
+      value: "test@example.com"
+  - fill:
+      selector: "#loginPassword"
+      value: "shopware"
+  - click: ".login-submit button[type='submit']"
+  - wait: 2000
+
+  # Clicks on below-the-fold links are flaky here (click point ends up outside the viewport),
+  # so open a demo product directly instead of navigating through the category listing
+  - open: /Main-product-with-properties/SWDEMO10007.1
+  - wait: 1500
+
+  - snapshot:
+      name: checkout-product-detail
+      auth_required: true
+      capture:
+        - ".product-detail-name"
+        - ".product-detail-ordernumber"
+        - ".product-detail-price"
+
+  - click: "button.btn-buy"
+  - wait: 2000
+
+  - open: /checkout/confirm
+  - wait: 2000
+
+  - snapshot:
+      name: checkout-confirm
+      auth_required: true
+      capture:
+        - ".checkout-main .line-item"
+        - ".checkout-aside-summary"
+        - ".checkout-aside-summary-list"
+        - ".confirm-payment-shipping"
+        - ".confirm-shipping-method"
+        - ".confirm-payment-method"
+        - ".confirm-address"
+        - ".confirm-billing-address"
+        - ".confirm-shipping-address"
+        - ".confirm-tos"
+        - "#tos"
+        - "#confirmFormSubmit"
+
+  - click: "#tos"
+  - wait: 500
+  # The submit button sits far below the fold and is not scrolled into view before the click;
+  # the fragment makes the browser scroll to it without reloading the page
+  - open: /checkout/confirm#confirmFormSubmit
+  - wait: 500
+  - click: "#confirmFormSubmit"
+  - wait: 3000
+
+  - snapshot:
+      name: checkout-finish
+      auth_required: true
+      capture:
+        - ".finish-header"
+        - ".finish-ordernumber"
+        - ".finish-info"
+        - ".checkout-finish"
+        - ".line-item"
+        - ".checkout-aside-summary"
+        - ".checkout-aside-summary-list"
+        - ".finish-address"
+        - ".finish-shipping-method"
+        - ".finish-payment-method"
+
+  - open: /account/order
+  - wait: 2000
+
+  - snapshot:
+      name: account-order-history
+      auth_required: true
+      capture:
+        - ".account-orders-main"
+        - ".order-table"
+        - ".order-wrapper"
+        - ".order-item-detail"
+        - ".order-table-header-order-number"
+        - ".order-table-body"

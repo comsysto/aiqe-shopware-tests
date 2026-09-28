@@ -6,9 +6,9 @@
 ## 2. Discovery
 
 - [x] 2.1 Write and run `discovery-scripts/explore-login.yml`: confirmed login route, selectors, demo credentials, and empty cart after login.
-- [ ] 2.2 Write `discovery-scripts/explore-checkout.yml`: log in → add product (snapshot product detail with name/number capture) → `/checkout/confirm` (snapshot with capture of line items, totals, payment/shipping method, addresses, T&C checkbox, submit button) → accept T&C → submit → `/checkout/finish` (snapshot with capture of order number, line items, totals, methods, addresses) → `/account/order` (snapshot with capture of the order list).
-- [ ] 2.3 Run `explore-checkout.yml` via `/discover-tests` and derive the selectors for all `OrderSummary` fields on the confirm and finish pages, the order number, and the order-history entries. Note formatting differences between confirm and finish.
-- [ ] 2.4 Determine how to empty a cart restored on login (reuse `CartPage` remove action or clear via the cart page) and confirm selectors if new ones are needed.
+- [x] 2.2 Write `discovery-scripts/explore-checkout.yml`: log in → add product (snapshot product detail with name/number capture) → `/checkout/confirm` (snapshot with capture of line items, totals, payment/shipping method, addresses, T&C checkbox, submit button) → accept T&C → submit → `/checkout/finish` (snapshot with capture of order number, line items, totals, methods, addresses) → `/account/order` (snapshot with capture of the order list).
+- [x] 2.3 Run `explore-checkout.yml` via `/discover-tests` and derive the selectors for all `OrderSummary` fields on the confirm and finish pages, the order number, and the order-history entries. Note formatting differences between confirm and finish.
+- [x] 2.4 Determine how to empty a cart restored on login (reuse `CartPage` remove action or clear via the cart page) and confirm selectors if new ones are needed.
 
 ## 3. Customer session (cross-cutting login)
 
