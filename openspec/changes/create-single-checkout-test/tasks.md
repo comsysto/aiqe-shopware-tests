@@ -26,10 +26,11 @@
 
 ## 5. Test implementation
 
-- [ ] 5.1 Add `CheckoutTest` with `@BeforeAll` mirroring `CartManagementTest` (base URL + browser size) and `@BeforeEach`: `clearBrowserCookies()`, dismiss cookie banner, `CustomerSession.loginAs(Customer.DEMO)`, ensure empty cart (checkout-flow: checkout starts from an empty cart).
-- [ ] 5.2 Implement the happy-path test: add a product from its detail page (remember name and number), proceed to checkout, assert confirm line items against the product (checkout-flow: cart contents carried into checkout confirm), read the confirm `OrderSummary`, accept T&C, submit, assert finish page reached (successful order placement), assert finish `OrderSummary` equals confirm via `usingRecursiveComparison()` and order number is non-empty (finish page matches confirm page), open `/account/order` and assert the order number is listed (order number found in order history).
+- [x] 5.1 Add `CheckoutTest` with `@BeforeAll` mirroring `CartManagementTest` (base URL + browser size) and `@BeforeEach`: `clearBrowserCookies()`, dismiss cookie banner, `CustomerSession.loginAs(Customer.DEMO)`, ensure empty cart (checkout-flow: checkout starts from an empty cart).
+- [x] 5.2 Implement the happy-path test: add a product from its detail page (remember name and number), proceed to checkout, assert confirm line items against the product (checkout-flow: cart contents carried into checkout confirm), read the confirm `OrderSummary`, accept T&C, submit, assert finish page reached (successful order placement), assert finish `OrderSummary` equals confirm via `usingRecursiveComparison()` and order number is non-empty (finish page matches confirm page), open `/account/order` and assert the order number is listed (order number found in order history).
 
 ## 6. Verification
 
-- [ ] 6.1 Run `./gradlew test` and confirm `CheckoutTest` passes alongside the full existing suite in one shared container (no regressions in `CartManagementTest` or `StorefrontSmokeTest`).
+- [x] 6.1 Run `./gradlew test` and confirm `CheckoutTest` passes alongside the full existing suite in one shared container (no regressions in `CartManagementTest` or `StorefrontSmokeTest`).
 - [ ] 6.2 Review the Serenity report for the new test to confirm reporting/screenshots render as expected.
+  - Blocked (2026-09-28): Serenity records nothing for any current test. `target/site/serenity` is stale (2026-06-19) with no per-test JSON, the tests are plain JUnit 5 + Selenide, and `build.gradle` has only `serenity-core` and the JUnit 4 `serenity-junit`. A report exists only after adding the `serenity-junit5` dependency and `@SerenityTest`, which is a scope decision.
