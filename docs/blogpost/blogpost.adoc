@@ -157,7 +157,7 @@ Applying this change, we soon had a working test framework that could:
 
 So, are we done already? Did we fulfill our hope the AI is a game changer for implementing UI tests?
 
-You may guess; the answer is a clear NO. The reason is that implementing test is only a part of the game. Tests are only valuable when they cover all code paths, and therefore, to facilitate an actual _rewrite_ of a large legacy software, it must be _complete_. To achieve that completeness, you must actually try the software out, crawl through every functionality and record its behavior in a test case.
+You may guess; the answer is a clear NO. The reason is that implementing test is only a part of the game. Tests are only valuable when they cover all code paths, and therefore, to facilitate an actual _rewrite_ of a large legacy software, it must be _complete_. To achieve that completeness, you must actually try the software out, crawl through every functionality and record its behavior in a test case. For a software like Shopware, that used to be work for a whole Quality Assurance team for several months - repetitive, sometimes tedious work.
 
 What better work could there be for a software agent?
 
@@ -166,25 +166,30 @@ So, we let an agent crawl the UI and discover new test cases. The main difficult
 === Automated test discovery
 
 ==== The intent
-The idea behind automated discovery is simple: instead of a human deciding what to test next, the agent looks at the running software, figures out which user journeys it offers, compares them to what our specifications already cover, and suggests the missing pieces. Test coverage thereby becomes an observable and repeatable process rather than a matter of someone remembering to write the next test.
+The idea behind automated discovery is simple: instead of a human deciding what to test next, the agent looks at the running software, figures out which user journeys it offers, compares them to what our specifications already cover, and suggests the missing pieces. This way, test coverage becomes a repeatable process with clear results and tracking.
 
 We had three requirements from the start:
 
-* **Separate facts from interpretation.** Collecting data about the storefront is deterministic work that belongs in plain Java code. Interpreting that data — which pages form a journey, what is already specified, what is missing — is where an LLM shines. The two should not be mixed.
-* **Think in journeys, not pages.** Shopware has many URLs that are merely variations of the same flow (`/clothing` and `/electronics` are both "product listing"). One proposal per URL would bury us in near-duplicates, so the agent has to cluster pages into user journeys.
-* **Be re-runnable.** Every run must take the existing specifications into account and propose only gaps or updates, never the same workflow twice.
+* **Separate facts from interpretation.** Gathering information about the storefront is a deterministic action and should be implemented as a normal program. Again, we are avoiding the mistake here to put everything in the hands of an LLM. A completely different thingh is the _interpretation_ of these results: that is what QA people do, and what we hope to replace using an LLM. The two should not be mixed.
+* **We don't want to follow HTML structure, but user journeys.** For example many URLs in shopware are parameterized paths that are merely variations of the same flow (`/clothing` and `/electronics` are both "product listing"). One proposal per URL would bury us in duplicate test cases, so we need to make sure the agent is able to cluster pages into user journeys.
+* **Discover gaps and avoid repetition.** Every run must take the existing specifications into account and propose only gaps or updates, never the same workflow twice.
 
-It took us two iterations to get there.
+We are not experiences test people, so we formulated our wishes in OpenSpec's _explore_ mode and let Claude help us to get started.
+
 
 ==== First iteration: a hard-coded crawler
-The link:../../openspec/changes/archive/2026-06-25-auto-discover-tests/proposal.md[first proposal] split the work into two parts. A `DiscoveryRunner` class — deliberately a separate Gradle task (`./gradlew discover`) and not a test, since it has no assertions and must not pollute the Serenity reports — reused the existing Testcontainers and Selenide setup. It started a Dockware container, visited the homepage, collected the navigation links, followed each of them one level deep, and finally logged in with the Dockware default customer to visit the account pages. For every page it wrote a JSON snapshot (URL, title, navigation links, buttons, form fields, headings) and a full-page screenshot to `build/discovery/`.
+In the link:../../openspec/changes/archive/2026-06-25-auto-discover-tests/proposal.md[first iteration], it came up with a proposal to split the work into two parts:
 
-On top of that, a Claude Code skill, `/discover-tests`, ran the crawler, read the snapshots, compared them with the existing specifications under `openspec/specs/`, and wrote one OpenSpec proposal per uncovered journey.
+* A `DiscoveryRunner` class that can be executed as an isolated Gradle task (`./gradlew discover`). The runner reused the existing Testcontainers and Selenide setup. It starts a Dockware container, visits the homepage, collects the navigation links, follows each of them one level deep, and finally logs in with the Dockware default customer to visit the account pages. For every page it writes a JSON snapshot (URL, title, navigation links, buttons, form fields, headings) and a full-page screenshot to `build/discovery/`.
+
+To enable interpretation of results, the agent created a skill, `/discover-tests`, that runs the crawler, reads the snapshots, compares them with the existing specifications, and writes one OpenSpec proposal per uncovered journey.
 
 The pipeline worked, but it quickly revealed its blind spot: the crawler could only _follow links_. It never clicked a button, filled in a form or triggered an AJAX request. The shopping cart, the checkout, anything hidden behind a modal dialog or created by client-side state was structurally invisible to it. And every attempt to fix this would have meant adding yet another hard-coded crawl strategy in Java — the runner was trying to be a clever, general-purpose explorer, and it was clearly the wrong place for that intelligence.
 
+When we tried to emply the agent to create a test suite for the Shopping Cart, it actually discovered this gap itself and asked us if we wanted to change the login. And of course, yes, we did.
+
 ==== Second iteration: a scriptable crawler
-The link:../../openspec/changes/archive/2026-06-26-scriptable-crawler/proposal.md[second proposal] turned this around: the agent is the intelligence, and the runner becomes a dumb executor. All crawl logic was removed from `DiscoveryRunner` and replaced by a small interpreter for YAML scripts with a deliberately minimal vocabulary:
+The link:../../openspec/changes/archive/2026-06-26-scriptable-crawler/proposal.md[second proposal] changed the flow of control for the crwaler: the  runner becomes a dumb executor that doesn't try to 'discover' anything. All crawling logic was removed and replaced by a small interpreter for YAML that the execution agent can use to steer what happens:
 
 [source,yaml]
 ----
@@ -200,7 +205,7 @@ steps:
       auth_required: true
 ----
 
-There are no loops and no conditionals. If a flow branches, the agent simply writes two scripts. A flat list of steps is easy for a human to review, safe to execute and trivial to parse — and writing explicit sequences like this is exactly what LLMs are good at. Scripts are committed to a `discovery-scripts/` directory, so the repository also records _what_ has been explored and how. The previous hard-coded crawl survives as `bootstrap.yml`, the starting point for a fresh discovery.
+There are no loops and no conditionals. If a flow branches, the agent can simply write another script. A flat list of steps is easy for a human to review, safe to execute and trivial to parse — and writing explicit sequences like this is exactly what LLMs are good at. Scripts are committed to a `discovery-scripts/` directory, so the repository also records _what_ has been explored and how. The previous hard-coded crawl survives as `bootstrap.yml`, the starting point for a fresh discovery.
 
 The second important change was the _round model_. Instead of running the whole pipeline in one go, each invocation of the skill does exactly one round and then hands back to the developer. This avoids runaway sessions, makes failures easy to debug, and — most importantly — keeps a human in charge of the direction in which the exploration goes.
 
@@ -217,5 +222,103 @@ image::../presentation/discovery-process-comsysto-inline.svg[Automated test disc
 . *Propose* — The developer gets a summary of what was explored, what was found, where the gaps are, and suggestions for the next round. The skill does not create OpenSpec proposals by itself: the developer decides which findings become a new or updated proposal, which then goes through the usual OpenSpec workflow and pull-request review.
 
 The developer then either starts the next round or turns the findings into a proposal — which is exactly how the link:../../openspec/changes/archive/2026-06-26-cart-management/proposal.md[cart management tests] came into being.
+
+== From cart to order: the checkout journey
+
+Cart management gets a shopper as far as `/checkout/cart`. Nothing beyond that point — the confirm page, placing the order, or the order actually showing up afterwards — was tested. For an e-commerce platform, checkout is not just another journey among many; it is _the_ journey. If a rewrite gets this one wrong, nothing else matters. The full link:../../openspec/changes/archive/2026-09-29-create-single-checkout-test/proposal.md[proposal], its link:../../openspec/changes/archive/2026-09-29-create-single-checkout-test/design.md[design decisions] and the resulting link:../../openspec/changes/archive/2026-09-29-create-single-checkout-test/tasks.md[task list] are, as always, in the repository.
+
+=== The scenario
+
+We asked the agent to keep the first checkout test to a single, thorough happy path rather than spreading effort thin across edge cases:
+
+. *Log in* — as the seeded demo customer.
+. *Empty the cart* — Shopware restores a logged-in customer's saved cart, so a leftover item from a previous run must not leak in.
+. *Add a product* — from its detail page.
+. *Check the confirm page* — `/checkout/confirm` must show the exact product we added: same name, same number, quantity one.
+. *Accept and submit* — tick the terms and conditions, place the order.
+. *Check the finish page* — `/checkout/finish` must match the confirm page in every detail — line items, totals, addresses, payment and shipping method — and show an order number.
+. *Check the order history* — that exact order number must be listed under `/account/order`.
+
+No guest checkout, no multiple items, no coupons. Same reasoning as cart management: prove the core path is solid before spending effort on branches. Guest checkout in particular means a multi-field address form — the single biggest source of flakiness in checkout end-to-end tests — so we kept the demo customer's saved address and left that fight for another day.
+
+=== Login as a cross-cutting concern
+
+Before checkout can even start, a customer has to be logged in — and so will every future journey that needs an authenticated shopper. Rather than let each test class reimplement the login form, we asked the agent to design a single entry point: `CustomerSession.loginAs(Customer)`, backed by a `LoginPage` page object that is the only class in the whole suite allowed to know the login form's selectors.
+
+image::images/account-overview-after-login.png[Account overview after logging in as the demo customer]
+
+This is exactly the kind of decision we want written down rather than silently baked into the code, so we had the agent record it as an link:../adr/0001-login-as-cross-cutting-concern.md[Architecture Decision Record]. The consequence we cared about most: the login _mechanism_ can be swapped later — a Store API call, a cookie dropped directly — without touching a single test that merely wants to _be_ logged in.
+
+=== Trusting the numbers, not just the pixels
+
+The harder design question wasn't how to click through checkout, but how to verify it thoroughly. A screenshot proves a page rendered; it says nothing about whether the totals are correct, or whether the order Shopware actually saved matches what the confirmation page promised.
+
+The agent's answer was an `OrderSummary` value object — line items, subtotal, shipping cost, tax, grand total, payment method, shipping method, billing and shipping address — with both `CheckoutPage` and `FinishPage` growing a `readSummary()` method that parses their own page into one. The test then compares the two, field by field, with AssertJ:
+
+[source,java]
+----
+assertThat(finishSummary).usingRecursiveComparison().isEqualTo(confirmSummary);
+----
+
+image::images/checkout-confirm.png[Checkout confirm page showing the order summary]
+
+One line, and it does real work: if the finish page ever shows a different shipping cost, drops the billing address, or rounds a total differently than the confirm page did, this fails and names the exact field that disagrees.
+
+=== One page object per route
+
+We kept the pattern already established for the cart: one page object per route, each owning only that page's selectors.
+
+`LoginPage`:: The only class that knows the login form's selectors, for `/account/login`.
+`CheckoutPage`:: Reads the `OrderSummary` on `/checkout/confirm`, accepts the terms, submits the order.
+`FinishPage`:: Reads the `OrderSummary` and the order number on `/checkout/finish`.
+`AccountOrderPage`:: Checks whether a given order number is listed on `/account/order`.
+
+Grounding every one of these selectors was itself a discovery-pipeline job: the agent wrote `explore-checkout.yml`, extended the crawler's `snapshot` step with an optional `capture` list of CSS selectors so it could pull out the outer HTML of price, address and order-number elements — things the original snapshot format (nav links, buttons, headings) never recorded — and ran one more round before writing a line of page-object code.
+
+=== Proof of persistence
+
+The recursive comparison proves the finish page agrees with the confirm page. It does not prove Shopware actually _saved_ the order — a page can render a beautiful confirmation and still fail to persist anything underneath. So the last step closes that gap: open `/account/order` and check the exact order number from the finish page is listed there.
+
+image::images/account-order-history.png[Order visible in the account order history]
+
+Small detail, disproportionate value: it's the one assertion in the whole test that reaches past what the browser is showing and confirms something actually happened on the server.
+
+== Making the report tell the story
+
+Early in this post we quoted Serenity BDD's own pitch: it generates reports that document "not just whether tests passed or failed, but the entire story of how the application behaves." So, once the checkout test was done, did our own report actually tell that story?
+
+You may guess; the answer is a clear NO. Every test showed a name, a green tick and a duration — nothing more. We had wired Serenity in as a JUnit 5 extension, but never actually used its step-reporting feature.
+
+=== Narrating actions instead of hiding them
+
+The agent's proposed mechanism turned out to be simpler than we expected, and needed no extra dependency: annotate a page-object method `@Step("...")`, and inject the page object into the test through a field annotated `@Steps` instead of constructing it directly. Serenity replaces that field with a proxy at runtime; every call to an `@Step` method going through it becomes a named entry in the report.
+
+[source,java]
+----
+@Steps
+CheckoutPage checkoutPage;
+
+@Step("Read the order summary from the confirm page")
+public OrderSummary readSummary() {
+    ...
+}
+----
+
+The one piece that needed real investigation was screenshots. Our tests use Selenide, which manages its own browser session, while Serenity's screenshot machinery expects to own the driver. The agent's fix was one line — `Serenity.useDriver(WebDriverRunner.getWebDriver())`, called once the browser exists and before the first narrated step — bridging Selenide's driver into Serenity so every step gets a picture of the page at that exact moment.
+
+We didn't want to guess whether this would hold up across a whole suite, so before touching the real test classes we let the agent run two throwaway spikes on a disposable branch, checked the generated JSON and the screenshots pixel by pixel, and only then wrote the link:../../openspec/changes/archive/2026-09-29-add-serenity-step-reporting/proposal.md[OpenSpec proposal] for the real change — a spike before a plan, for once, rather than the other way around.
+
+=== Two bugs a green test hid from us
+
+This is the part of the story we promised at the start of this post: where the agent got it wrong on the first pass, and what it took to catch that. We had run the whole suite before, always green. Two failures were hiding in it anyway, and neither one ever raised its hand:
+
+* **A driver that dies quietly.** Once any test registered a driver with `Serenity.useDriver()`, the _next_ test's `clearBrowserCookies()` call failed with `NoSuchSessionException: ... after calling quit()?` — but only if it ran before the page was reopened. Selenide's `open()` silently recovers a dead or replaced browser session; the raw cookie-clearing command does not. Every per-class check we had run up to that point used a `--tests` filter that only ever exercised one class calling `useDriver()` per JVM, so the failure only showed up once a second class did the same thing in the same run.
+* **Steps that silently never happened.** After retrofitting the checkout test, it kept passing — green, as always — but its report showed only 7 of the 13 steps we expected. No exception, no warning, nothing in any log. The `@Steps` proxies were correctly wired (we had the agent check `.getClass()` on every field and got real proxy classes back), but three of the page objects' methods had simply never been annotated `@Step` in the real codebase — only on a disposable spike branch that was never merged. A method called through a perfectly good proxy just passes straight through if it isn't annotated: no step, no error, nothing to notice unless you count.
+
+Neither was caught by luck. Both surfaced only because we made the agent run the _whole_ suite repeatedly, and count the steps in a report against what the specification said should be there, instead of trusting a passing test.
+
+=== The payoff
+
+With both fixed, all four test classes now narrate their actions as named steps, each with a real screenshot of the page at that moment. The `checkout-confirm.png` and `account-order-history.png` images above aren't hand-picked illustrations — they are exactly what Serenity embedded into the "Read the order summary from the confirm page" and "Open the account order history" steps of our own report. Thirty-one steps across the whole suite, every one with a screenshot. Serenity's promise from the top of this post finally holds — this time, we checked.
 
 
