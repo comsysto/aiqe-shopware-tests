@@ -124,11 +124,19 @@
 
 ## 8. Full-suite verification
 
-- [ ] 8.1 Run `./gradlew cleanTest test` for the whole suite at least twice in a row in the shared
+- [x] 8.1 Run `./gradlew cleanTest test` for the whole suite at least twice in a row in the shared
       per-JVM container; confirm no regressions in any of the four test classes.
-- [ ] 8.2 Regenerate the Serenity HTML report (`./gradlew aggregate --rerun`) and open each of the
+      - 2 consecutive runs, both green (8/8 tests, all four classes).
+- [x] 8.2 Regenerate the Serenity HTML report (`./gradlew aggregate --rerun`) and open each of the
       four test result pages; confirm steps render with visible screenshot thumbnails and no step
       shows zero screenshots.
-- [ ] 8.3 Spot-check screenshot content for at least one step per test class (open the PNG, confirm
+      - Audited all 8 test result JSONs programmatically: 31 total narrated steps across the whole
+        suite, zero with an empty screenshot list. Confirmed each test's generated HTML page
+        contains matching screenshot image references (0 for `homepage_loads`, which correctly has
+        no steps; 2-18 for the rest, consistent with their step/screenshot counts).
+- [x] 8.3 Spot-check screenshot content for at least one step per test class (open the PNG, confirm
       it shows the correct page state, not a blank or error page) — the same verification approach
       used in the spikes.
+      - All four classes now have at least one visually-verified screenshot (done incrementally in
+        tasks 4.2/5.2/7.5, plus `StorefrontSmokeTest`'s category-listing and search-result
+        screenshots checked here) — every one showed the correct page, not blank or an error state.
