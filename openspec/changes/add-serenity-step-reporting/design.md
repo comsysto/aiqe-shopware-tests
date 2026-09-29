@@ -134,8 +134,33 @@ generalizes.
   → instance, same external contract for callers) and recorded as an explicit new ADR (0002)
   rather than silently edited, so the history of *why* stays intact.
 
+## Amendment (discovered during task 5): the driver bridge is not safe across classes as spiked
+
+Both spikes, and every per-class verification task (4.2, 5.2, etc.), ran exactly one test class per
+JVM (`--tests '*ClassName'`). Once a second class in the same full-suite run also called
+`Serenity.useDriver()`, a real bug surfaced that neither spike nor per-class verification could have
+caught: after any test registers a driver with `Serenity.useDriver()`, the browser session can
+become unusable for the *next* test to run, anywhere in the suite — observed as
+`NoSuchSessionException: Session ID is null. Using WebDriver after calling quit()?`.
+
+The precise mechanism was not fully pinned down (decompiling `SerenityJUnit5Extension` showed
+`postProcessTestInstance` re-running `Serenity.injectDriverInto(...)` for every new test instance,
+which JUnit5 creates per test method — a plausible trigger, not confirmed further). What was
+established empirically, conclusively, across three repeated full-suite runs: **`clearBrowserCookies()`
+is a raw driver command with no recovery and fails hard on a dead/replaced session;
+Selenide's `open(...)` transparently recovers one.** Every test class's `@BeforeEach` that called
+`clearBrowserCookies()` before its first `open(...)` failed whenever it ran after a
+`Serenity.useDriver()`-calling test; `StorefrontSmokeTest`, which never calls
+`clearBrowserCookies()` and opens a page as its very first action, was unaffected throughout.
+
+**Fix**: every `@BeforeEach` that clears cookies now calls `open(...)` first, purely to force a live
+(recovering, if necessary) session before issuing any driver command that can't recover one itself.
+This is a small, general, low-risk reordering, not a workaround specific to one class — it applies
+to `CustomerSessionTest`, `CartManagementTest` and (task 7) `CheckoutTest` alike, and makes the whole
+suite resilient to *any* cause of driver disruption, not just this one.
+
 ## Open Questions
 
-None — the mechanism is proven by spike, and the decisions above resolve every ambiguity the
-proposal raised. `tasks.md` is expected to surface line-level naming questions (exact step wording)
-that don't need a design-level decision.
+None — the mechanism is proven by spike (with the driver-recovery amendment above), and the
+decisions above resolve every ambiguity the proposal raised. `tasks.md` is expected to surface
+line-level naming questions (exact step wording) that don't need a design-level decision.

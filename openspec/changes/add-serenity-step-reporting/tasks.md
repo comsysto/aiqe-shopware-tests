@@ -50,14 +50,32 @@
 
 ## 5. CartManagementTest
 
-- [ ] 5.1 Replace the inline add-to-cart logic in `addProductToCart()` with
+- [x] 5.1 Replace the inline add-to-cart logic in `addProductToCart()` with
       `storefrontPage.openFirstCategory()` and `productDetailPage.readName()/readNumber()/addToCart()`
       through injected `@Steps` fields; replace the inline quantity-increase and remove calls in
       CM-2/CM-3 with `cartPage.increaseQuantity(0)`/`cartPage.removeItem(0)` through an injected
       `@Steps CartPage` field; add the driver-bridge call in `@BeforeEach`.
-- [ ] 5.2 Run `./gradlew cleanTest test --tests '*CartManagementTest'`; confirm CM-1/2/3 still pass
+      - Used `productDetailPage.openFirstListedProduct()` (added in task 3.2) instead of
+        `readName()/readNumber()` for the navigation itself; name/number aren't read in this test.
+- [x] 5.2 Run `./gradlew cleanTest test --tests '*CartManagementTest'`; confirm CM-1/2/3 still pass
       and each test's Serenity JSON result shows the expected narrated steps with screenshots
       (test-step-reporting: add-to-cart narrated in the cart-management journey).
+      - **Found and fixed a cross-class bug during full-suite verification** (not caught by the
+        spikes or by per-class `--tests` filters, which never exercise two `Serenity.useDriver()`
+        classes in the same JVM run): once any test registers a driver with
+        `Serenity.useDriver()`, the *next* test whose setup calls `clearBrowserCookies()` before
+        `open(...)` fails with `NoSuchSessionException: ... after calling quit()?` —
+        `clearBrowserCookies()` is a raw driver command with no recovery, while Selenide's `open()`
+        transparently recovers a dead/replaced session. Fixed by reordering every affected
+        `@BeforeEach` to call `open(...)` before `clearBrowserCookies()`, in `CartManagementTest`,
+        `CustomerSessionTest` and `CheckoutTest` (all three, since the failure is cross-class: a
+        driver killed by one class's test breaks the next class's first `clearBrowserCookies()`
+        call, regardless of which class). Verified: 3 consecutive full-suite runs
+        (`./gradlew cleanTest test`), same execution order that failed before the fix, all green.
+        Root cause of *why* the driver becomes unusable after `useDriver()` was not fully pinned
+        down (Serenity's `SerenityJUnit5Extension.postProcessTestInstance` re-injects driver state
+        for every new test instance, which JUnit5 creates per test method) — not needed once every
+        test tolerates it via `open()`-first ordering. Recorded in `design.md`.
 
 ## 6. StorefrontSmokeTest
 

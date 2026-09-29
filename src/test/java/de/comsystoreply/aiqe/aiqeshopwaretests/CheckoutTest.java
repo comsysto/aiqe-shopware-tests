@@ -42,7 +42,9 @@ class CheckoutTest {
 
     @BeforeEach
     void loginWithEmptyCart() {
-        // Fresh session so every test exercises the login
+        // open() first: it recovers a dead/replaced driver session; clearBrowserCookies() does not
+        // and fails hard if a previous test's driver registration left the session unusable
+        open("/");
         clearBrowserCookies();
         open("/");
         dismissCookieBanner();
