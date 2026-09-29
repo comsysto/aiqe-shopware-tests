@@ -1,6 +1,9 @@
 package de.comsystoreply.aiqe.aiqeshopwaretests;
 
 import com.codeborne.selenide.Configuration;
+import com.codeborne.selenide.WebDriverRunner;
+import net.serenitybdd.annotations.Steps;
+import net.serenitybdd.core.Serenity;
 import net.serenitybdd.junit5.SerenityJUnit5Extension;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +22,9 @@ import static com.codeborne.selenide.WebDriverConditions.urlContaining;
 @ExtendWith(SerenityJUnit5Extension.class)
 class CustomerSessionTest {
 
+    @Steps
+    CustomerSession customerSession;
+
     @BeforeAll
     static void setUp() {
         final var baseUrl = System.getProperty("shopware.baseUrl");
@@ -29,13 +35,17 @@ class CustomerSessionTest {
     @BeforeEach
     void logOut() {
         clearBrowserCookies();
+        open("/");
+        // Bridges Selenide's externally-managed driver into Serenity, once it exists, and before
+        // any @Step runs, so every narrated step (including the first) gets a screenshot
+        Serenity.useDriver(WebDriverRunner.getWebDriver());
     }
 
     @Test
     @DisplayName("CS-1: Logging in as the demo customer makes the account overview reachable")
     void should_reach_account_overview_after_login_as_demo_customer() {
         // when
-        CustomerSession.loginAs(Customer.DEMO);
+        customerSession.loginAs(Customer.DEMO);
 
         // then
         open("/account");

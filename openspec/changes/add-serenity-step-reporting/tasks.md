@@ -1,14 +1,14 @@
 ## 1. Architecture decision
 
-- [ ] 1.1 Write ADR 0002 in `docs/adr/` amending ADR 0001: `CustomerSession` becomes instance-based
+- [x] 1.1 Write ADR 0002 in `docs/adr/` amending ADR 0001: `CustomerSession` becomes instance-based
       and `@Steps`-injectable so login can be narrated; the single-entry-point intent of ADR 0001 is
       preserved.
 
 ## 2. Cross-cutting session
 
-- [ ] 2.1 Convert `CustomerSession` from a static utility to an instance class holding an injected
+- [x] 2.1 Convert `CustomerSession` from a static utility to an instance class holding an injected
       `LoginPage`, with an instance `loginAs(Customer)` method annotated `@Step("Log in as {0}")`.
-- [ ] 2.2 Add `@Step` to `LoginPage.open()` and `LoginPage.logInAs(Customer)`.
+- [x] 2.2 Add `@Step` to `LoginPage.open()` and `LoginPage.logInAs(Customer)`.
 
 ## 3. Shared page objects for narrated business actions
 
@@ -26,13 +26,18 @@
 
 ## 4. CustomerSessionTest
 
-- [ ] 4.1 Replace the static `CustomerSession.loginAs(...)` call with an injected
+- [x] 4.1 Replace the static `CustomerSession.loginAs(...)` call with an injected
       `@Steps CustomerSession customerSession` field; add
       `Serenity.useDriver(WebDriverRunner.getWebDriver())` in `@BeforeEach`, after the driver exists
       and before the login step runs (test-step-reporting: driver bridged before narrated steps run).
-- [ ] 4.2 Run `./gradlew cleanTest test --tests '*CustomerSessionTest'`; confirm CS-1 still passes
+- [x] 4.2 Run `./gradlew cleanTest test --tests '*CustomerSessionTest'`; confirm CS-1 still passes
       and its Serenity JSON result shows a login step with at least one screenshot
       (test-step-reporting: login is narrated).
+      - Verified: full suite (`./gradlew cleanTest test`) compiles and passes. CS-1's JSON shows a
+        parent step "Log in as Customer[...]" (2 screenshots) with two nested child steps, "Open
+        the login page" and "Enter credentials for ..." (each with their own screenshots) — richer
+        than the minimum required, since `CustomerSession.loginAs` itself delegates through an
+        injected `@Steps LoginPage`.
 
 ## 5. CartManagementTest
 
