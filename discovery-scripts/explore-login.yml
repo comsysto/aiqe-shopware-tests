@@ -1,0 +1,31 @@
+# Confirm demo customer login and the cart state immediately after login.
+# Verifies: login route/selectors, seeded credentials, and whether a persisted cart is merged in.
+steps:
+  - open: /account/login
+  - click: ".cookie-permission-container button.btn-primary"
+  - wait: 500
+
+  - snapshot:
+      name: login-page
+      auth_required: false
+
+  # Assumed dockware demo credentials — to be confirmed by this round
+  - fill:
+      selector: "#loginMail"
+      value: "test@example.com"
+  - fill:
+      selector: "#loginPassword"
+      value: "shopware"
+  - click: ".login-submit button[type='submit']"
+  - wait: 2000
+
+  - snapshot:
+      name: account-after-login
+      auth_required: true
+
+  # Cart before any add-to-cart: should be empty unless a persisted cart is merged on login
+  - open: /checkout/cart
+  - wait: 1500
+  - snapshot:
+      name: cart-after-login
+      auth_required: true

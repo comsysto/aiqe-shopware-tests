@@ -36,7 +36,8 @@ Glob `build/discovery/*.json` and read every file found. Each snapshot has this 
     "buttons": [...],
     "formFields": [...],
     "headings": [...]
-  }
+  },
+  "captured": { "<selector>": ["<outer HTML>", ...] }
 }
 ```
 
@@ -69,8 +70,15 @@ steps:
   - snapshot:
       name: journey-hint-slug    # used as filename and journey_hint
       auth_required: false
+      capture:                   # optional: CSS selectors whose outer HTML is recorded
+        - ".checkout-aside-summary"
   - wait: 500                    # milliseconds
 ```
+
+`capture` grounds selectors for text-bearing elements (prices, addresses, order numbers) that the
+fixed `elements` categories do not record. Each selector maps to the list of outer HTML strings of
+all matches under `captured` in the snapshot JSON; a selector without matches maps to an empty list.
+Snapshots without `capture` have no `captured` entry.
 
 Keep scripts flat — no loops or conditionals. Write explicit steps for each action. If a flow branches, write two separate scripts and run them in separate rounds.
 
