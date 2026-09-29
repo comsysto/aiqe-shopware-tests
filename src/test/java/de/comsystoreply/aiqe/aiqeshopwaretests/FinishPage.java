@@ -2,6 +2,7 @@ package de.comsystoreply.aiqe.aiqeshopwaretests;
 
 import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.SelenideElement;
+import net.serenitybdd.annotations.Step;
 
 import static com.codeborne.selenide.CollectionCondition.sizeGreaterThan;
 import static com.codeborne.selenide.Condition.attributeMatching;
@@ -13,11 +14,13 @@ public class FinishPage {
     public final ElementsCollection lineItems = $$(".line-item");
 
     // The visible text is "Your order number: #10000"; the attribute holds just the number
+    @Step("Read the order number from the finish page")
     public String orderNumber() {
         final var element = $(".finish-ordernumber").shouldHave(attributeMatching("data-order-number", ".+"));
         return element.getAttribute("data-order-number");
     }
 
+    @Step("Read the order summary from the finish page")
     public OrderSummary readSummary() {
         lineItems.shouldHave(sizeGreaterThan(0));
         final var items = lineItems.asFixedIterable().stream()

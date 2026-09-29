@@ -1,7 +1,9 @@
 package de.comsystoreply.aiqe.aiqeshopwaretests;
 
 import com.codeborne.selenide.Configuration;
+import com.codeborne.selenide.WebDriverRunner;
 import net.serenitybdd.annotations.Steps;
+import net.serenitybdd.core.Serenity;
 import net.serenitybdd.junit5.SerenityJUnit5Extension;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -9,11 +11,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import static com.codeborne.selenide.CollectionCondition.size;
 import static com.codeborne.selenide.Condition.exactText;
 import static com.codeborne.selenide.Condition.visible;
 import static com.codeborne.selenide.Selenide.$;
-import static com.codeborne.selenide.Selenide.$$;
 import static com.codeborne.selenide.Selenide.clearBrowserCookies;
 import static com.codeborne.selenide.Selenide.open;
 import static com.codeborne.selenide.Selenide.webdriver;
@@ -23,15 +23,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ExtendWith(SerenityJUnit5Extension.class)
 class CheckoutTest {
 
-    private final CartPage cartPage = new CartPage();
-    private final CheckoutPage checkoutPage = new CheckoutPage();
-    private final FinishPage finishPage = new FinishPage();
-    private final AccountOrderPage accountOrderPage = new AccountOrderPage();
-
-    // Minimal fix to keep this class compiling now that CustomerSession is instance-based
-    // (ADR 0002); the rest of this test's own step-reporting retrofit is a separate task
     @Steps
     CustomerSession customerSession;
+    @Steps
+    StorefrontPage storefrontPage;
+    @Steps
+    ProductDetailPage productDetailPage;
+    @Steps
+    CartPage cartPage;
+    @Steps
+    CheckoutPage checkoutPage;
+    @Steps
+    FinishPage finishPage;
+    @Steps
+    AccountOrderPage accountOrderPage;
 
     @BeforeAll
     static void setUp() {
@@ -48,19 +53,22 @@ class CheckoutTest {
         clearBrowserCookies();
         open("/");
         dismissCookieBanner();
+        // Bridges Selenide's externally-managed driver into Serenity, once it exists, and before
+        // any @Step runs, so every narrated step (including the first) gets a screenshot
+        Serenity.useDriver(WebDriverRunner.getWebDriver());
         customerSession.loginAs(Customer.DEMO);
-        ensureEmptyCart();
+        cartPage.ensureEmpty();
     }
 
     @Test
     @DisplayName("CO-1: A logged-in customer checks out one product and finds the order in the order history")
     void should_place_order_and_find_it_in_order_history() {
         // given
-        $$("nav.main-navigation-menu a.main-navigation-link:not(.home-link)").first().click();
-        $(".product-box a.product-name").click();
-        final var productName = $(".product-detail-name").shouldBe(visible).getText().strip();
-        final var productNumber = $(".product-detail-ordernumber").getText().strip();
-        $("button.btn-buy").click();
+        storefrontPage.openFirstCategory();
+        productDetailPage.openFirstListedProduct();
+        final var productName = productDetailPage.readName();
+        final var productNumber = productDetailPage.readNumber();
+        productDetailPage.addToCart();
         open("/checkout/cart");
         cartPage.proceedToCheckout.click();
 
@@ -84,16 +92,6 @@ class CheckoutTest {
         assertThat(finishSummary).usingRecursiveComparison().isEqualTo(confirmSummary);
 
         accountOrderPage.orderNumbers.findBy(exactText(orderNumber)).shouldBe(visible);
-    }
-
-    private void ensureEmptyCart() {
-        // Shopware restores a logged-in customer's saved cart, so a leftover item must not leak in
-        open("/checkout/cart");
-        while (cartPage.lineItems.size() > 0) {
-            final var remaining = cartPage.lineItems.size() - 1;
-            cartPage.removeButton(0).click();
-            cartPage.lineItems.shouldHave(size(remaining));
-        }
     }
 
     private static void dismissCookieBanner() {
