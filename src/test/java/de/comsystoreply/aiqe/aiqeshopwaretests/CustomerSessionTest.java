@@ -34,8 +34,10 @@ class CustomerSessionTest {
 
     @BeforeEach
     void logOut() {
-        clearBrowserCookies();
+        // open() first: it recovers a dead/replaced driver session; clearBrowserCookies() does not
+        // and fails hard if a previous test's driver registration left the session unusable
         open("/");
+        clearBrowserCookies();
         // Bridges Selenide's externally-managed driver into Serenity, once it exists, and before
         // any @Step runs, so every narrated step (including the first) gets a screenshot
         Serenity.useDriver(WebDriverRunner.getWebDriver());
