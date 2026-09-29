@@ -35,6 +35,7 @@ dependencies {
     testImplementation('org.yaml:snakeyaml:2.2')
     testImplementation('net.serenity-bdd:serenity-core:4.2.8')
     testImplementation('net.serenity-bdd:serenity-junit:4.2.8')
+    testImplementation('net.serenity-bdd:serenity-junit5:4.2.8')
     testImplementation('org.assertj:assertj-core:3.26.3')
     testImplementation('org.slf4j:slf4j-simple:2.0.16')
 

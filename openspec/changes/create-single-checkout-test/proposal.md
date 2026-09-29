@@ -26,5 +26,6 @@ Cart management is covered end-to-end (add, update quantity, remove) but no test
 - Modified: `DiscoveryRunner` (snapshot `capture` option).
 - New discovery scripts: `discovery-scripts/explore-login.yml` (already run), `discovery-scripts/explore-checkout.yml`.
 - New ADR under `docs/adr/`.
-- No changes to `CartPage`, `DockwareContainer`, or existing cart tests. The shared per-JVM container is kept; no fresh-container mechanism is introduced.
+- No changes to `CartPage` or `DockwareContainer`. The shared per-JVM container is kept; no fresh-container mechanism is introduced.
+- Modified: `build.gradle` adds `serenity-junit5`, and every test class (`CartManagementTest`, `StorefrontSmokeTest`, `CustomerSessionTest`, `CheckoutTest`) gets `@ExtendWith(SerenityJUnit5Extension.class)` so the suite appears in the Serenity report. No test logic changes.
 - Modified: `build.gradle` starts Chrome with `--force-prefers-reduced-motion` for the `test` and `discover` tasks, which switches off the storefront's smooth scrolling that made clicks on initially off-screen elements intermittently fail in every journey.

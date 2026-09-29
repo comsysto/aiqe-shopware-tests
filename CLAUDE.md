@@ -19,11 +19,11 @@ Browser automation test suite for Shopware e-commerce platform, built with Selen
 # Build project
 ./gradlew build
 
-# Generate Serenity reports (runs after test automatically via plugin)
-./gradlew aggregate
+# Generate the Serenity HTML report; plain `aggregate` is skipped as UP-TO-DATE after a test run
+./gradlew aggregate --rerun
 ```
 
-Test reports are generated in `build/reports/` by Serenity BDD.
+Serenity result files and the HTML report are written to `target/site/serenity/` (open `index.html`). Gradle's own test report is in `build/reports/tests/`.
 
 ## Architecture
 
@@ -34,7 +34,7 @@ Tests follow the **Page Object Model (POM)** pattern:
 
 Key stack:
 - **Selenide 7.6.0** — fluent Selenium wrapper; use `$()`, `shouldBe()`, `shouldHave()` for assertions on elements
-- **Serenity BDD 4.2.8** — wraps JUnit to produce HTML reports; apply `@SerenityTest` when adding reporting steps
+- **Serenity BDD 4.2.8** — wraps JUnit to produce HTML reports; every test class carries `@ExtendWith(SerenityJUnit5Extension.class)` (from `serenity-junit5`) to be reported. This records outcomes and durations only; steps and screenshots are not recorded because Serenity is not hooked into Selenide
 - **JUnit 5** — test runner (`useJUnitPlatform()` in build)
 - **AssertJ** — fluent assertions for non-element checks
 
