@@ -96,18 +96,31 @@
 
 ## 7. CheckoutTest
 
-- [ ] 7.1 Replace the plain `cartPage`, `checkoutPage`, `finishPage`, `accountOrderPage` fields with
+- [x] 7.1 Replace the plain `cartPage`, `checkoutPage`, `finishPage`, `accountOrderPage` fields with
       `@Steps`-annotated fields (the exact pattern proven for `checkoutPage`/`finishPage`/
       `accountOrderPage` in the spike; extended here to `cartPage` too).
-- [ ] 7.2 Replace the given block's raw Selenide calls with `storefrontPage.openFirstCategory()` and
+      - **Found a real gap while verifying this task**: `CheckoutPage`, `FinishPage` and
+        `AccountOrderPage` never actually had `@Step` annotations added to their methods in the
+        real codebase — only on the throwaway spike branch, which was never merged. Task 7.1's
+        wording ("the exact pattern proven... in the spike") assumed this was already done; it
+        wasn't, and no earlier task covered it. Symptom: the `@Steps` field proxies were confirmed
+        correctly injected (checked via `.getClass()` — real ByteBuddy proxy classes), but calling
+        an *unannotated* method through a proxy just passes through silently — no step, no error,
+        no warning anywhere in stdout/stderr. `CO-1` passed throughout (the real actions all
+        worked), but only showed 7 of the expected 13 steps. Fixed by adding the missing `@Step`
+        annotations to all six methods across the three classes (see their own diffs).
+- [x] 7.2 Replace the given block's raw Selenide calls with `storefrontPage.openFirstCategory()` and
       `productDetailPage.readName()/readNumber()/addToCart()`.
-- [ ] 7.3 Replace the private `ensureEmptyCart()` method with a call to `cartPage.ensureEmpty()`.
-- [ ] 7.4 Add the driver-bridge call in `@BeforeEach`, right after the first `open(...)` and before
+- [x] 7.3 Replace the private `ensureEmptyCart()` method with a call to `cartPage.ensureEmpty()`.
+- [x] 7.4 Add the driver-bridge call in `@BeforeEach`, right after the first `open(...)` and before
       any `@Step` runs (matches the spike's verified placement).
-- [ ] 7.5 Run `./gradlew cleanTest test --tests '*CheckoutTest'`; confirm CO-1 still passes and its
+- [x] 7.5 Run `./gradlew cleanTest test --tests '*CheckoutTest'`; confirm CO-1 still passes and its
       Serenity JSON result shows every narrated step from the spec (login, cart-emptying if
       triggered, add-to-cart, confirm summary, accept T&C, submit, finish page, order history) in
       the correct order, each with a screenshot.
+      - Verified: all 13 steps present in the correct order, each with 1-2 screenshots. 3
+        consecutive full-suite runs, all green. Visually spot-checked the confirm-page and
+        order-history screenshots — both correct.
 
 ## 8. Full-suite verification
 
