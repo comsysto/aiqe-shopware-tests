@@ -2,8 +2,12 @@ package de.comsystoreply.aiqe.aiqeshopwaretests;
 
 import com.codeborne.selenide.Configuration;
 import com.codeborne.selenide.Selenide;
+import com.codeborne.selenide.WebDriverRunner;
+import net.serenitybdd.annotations.Steps;
+import net.serenitybdd.core.Serenity;
 import net.serenitybdd.junit5.SerenityJUnit5Extension;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,7 +21,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ExtendWith(SerenityJUnit5Extension.class)
 class StorefrontSmokeTest {
 
-    private final StorefrontPage page = new StorefrontPage();
+    @Steps
+    StorefrontPage storefrontPage;
 
     @BeforeAll
     static void setUp() {
@@ -26,26 +31,27 @@ class StorefrontSmokeTest {
         Configuration.browserSize = "1280x800";
     }
 
+    @BeforeEach
+    void openHomepage() {
+        open("/");
+        // Bridges Selenide's externally-managed driver into Serenity, once it exists, and before
+        // any @Step runs, so every narrated step (including the first) gets a screenshot
+        Serenity.useDriver(WebDriverRunner.getWebDriver());
+    }
+
     @Test
     @DisplayName("Homepage loads: page title is non-blank and main navigation is visible")
     void homepage_loads() {
-        // when
-        open("/");
-
         // then
         assertThat(Selenide.title()).isNotBlank();
-        page.mainNavigation.shouldBe(visible);
+        storefrontPage.mainNavigation.shouldBe(visible);
     }
 
     @Test
     @DisplayName("Category navigation: clicking first nav link loads a category page")
     void category_navigation_works() {
-        // given
-        open("/");
-        final var firstNavLink = $$("nav.main-navigation-menu a.main-navigation-link:not(.home-link)").first();
-
         // when
-        firstNavLink.click();
+        storefrontPage.openFirstCategory();
 
         // then
         assertThat(Selenide.webdriver().driver().url()).isNotEqualTo(Configuration.baseUrl + "/");
@@ -55,12 +61,8 @@ class StorefrontSmokeTest {
     @Test
     @DisplayName("Search returns results: searching for 'Shirt' shows at least one product")
     void search_returns_results() {
-        // given
-        open("/");
-
         // when
-        page.searchInput.setValue("Shirt");
-        page.searchButton.click();
+        storefrontPage.search("Shirt");
 
         // then
         $$(".product-box").shouldHave(sizeGreaterThan(0));

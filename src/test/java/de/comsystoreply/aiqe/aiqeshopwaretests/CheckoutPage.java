@@ -3,6 +3,7 @@ package de.comsystoreply.aiqe.aiqeshopwaretests;
 import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.Selenide;
 import com.codeborne.selenide.SelenideElement;
+import net.serenitybdd.annotations.Step;
 
 import static com.codeborne.selenide.CollectionCondition.sizeGreaterThan;
 import static com.codeborne.selenide.Condition.checked;
@@ -20,6 +21,7 @@ public class CheckoutPage {
         return this;
     }
 
+    @Step("Read the order summary from the confirm page")
     public OrderSummary readSummary() {
         lineItems.shouldHave(sizeGreaterThan(0));
         final var items = lineItems.asFixedIterable().stream()
@@ -43,11 +45,13 @@ public class CheckoutPage {
                 shippingAddress);
     }
 
+    @Step("Accept the terms and conditions")
     public void acceptTermsAndConditions() {
         termsCheckbox.click();
         termsCheckbox.shouldBe(checked);
     }
 
+    @Step("Submit the order")
     public void submitOrder() {
         submitButton.click();
     }
