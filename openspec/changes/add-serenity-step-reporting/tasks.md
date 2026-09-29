@@ -12,17 +12,26 @@
 
 ## 3. Shared page objects for narrated business actions
 
-- [ ] 3.1 Add `@Step`-annotated `openFirstCategory()` and `search(String term)` methods to
+- [x] 3.1 Add `@Step`-annotated `openFirstCategory()` and `search(String term)` methods to
       `StorefrontPage`, replacing the near-duplicated raw nav-click/search Selenide calls currently
       inline in `CartManagementTest`, `StorefrontSmokeTest`, and `CheckoutTest`.
-- [ ] 3.2 Add a new `ProductDetailPage` page object with `@Step`-annotated `readName()`,
+- [x] 3.2 Add a new `ProductDetailPage` page object with `@Step`-annotated `readName()`,
       `readNumber()`, and `addToCart()` methods, replacing the raw `.product-detail-name` /
       `.product-detail-ordernumber` / `button.btn-buy` calls currently inline in
       `CartManagementTest.addProductToCart()` and `CheckoutTest`'s given block.
-- [ ] 3.3 Add `@Step`-annotated `increaseQuantity(int index)` and `removeItem(int index)` methods to
+      - Also added `openFirstListedProduct()`, wrapping the `.product-box a.product-name` click.
+        Not literally listed in this task, but design.md's plumbing table calls for "Open a
+        product" to be narrated too, and this is the page object it naturally belongs on.
+- [x] 3.3 Add `@Step`-annotated `increaseQuantity(int index)` and `removeItem(int index)` methods to
       `CartPage` (wrapping the click+assert pairs `CartManagementTest`'s CM-2/CM-3 currently do
       inline), and a `@Step`-annotated `ensureEmpty()` method that moves
       `CheckoutTest.ensureEmptyCart()`'s while-loop body into `CartPage` itself.
+      - `ensureEmpty()` does NOT call `removeItem()` internally (a step's own internal call on
+        `this` bypasses the `@Steps` proxy and would not be narrated), so it keeps its own copy of
+        the remove-and-wait logic to stay a single reported step, per the spec's "narrated as a
+        step" (singular) requirement.
+      - Purely additive: no existing `CartPage` method signature changed, so `CartManagementTest`
+        and `CheckoutTest` are unaffected until their own retrofit tasks touch them.
 
 ## 4. CustomerSessionTest
 
