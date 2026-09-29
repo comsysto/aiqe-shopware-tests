@@ -1,6 +1,7 @@
 package de.comsystoreply.aiqe.aiqeshopwaretests;
 
 import com.codeborne.selenide.Configuration;
+import net.serenitybdd.annotations.Steps;
 import net.serenitybdd.junit5.SerenityJUnit5Extension;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +28,11 @@ class CheckoutTest {
     private final FinishPage finishPage = new FinishPage();
     private final AccountOrderPage accountOrderPage = new AccountOrderPage();
 
+    // Minimal fix to keep this class compiling now that CustomerSession is instance-based
+    // (ADR 0002); the rest of this test's own step-reporting retrofit is a separate task
+    @Steps
+    CustomerSession customerSession;
+
     @BeforeAll
     static void setUp() {
         final var baseUrl = System.getProperty("shopware.baseUrl");
@@ -40,7 +46,7 @@ class CheckoutTest {
         clearBrowserCookies();
         open("/");
         dismissCookieBanner();
-        CustomerSession.loginAs(Customer.DEMO);
+        customerSession.loginAs(Customer.DEMO);
         ensureEmptyCart();
     }
 
