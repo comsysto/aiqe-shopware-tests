@@ -79,11 +79,20 @@
 
 ## 6. StorefrontSmokeTest
 
-- [ ] 6.1 Replace the inline nav-click and search logic with `storefrontPage.openFirstCategory()`
+- [x] 6.1 Replace the inline nav-click and search logic with `storefrontPage.openFirstCategory()`
       and `storefrontPage.search("Shirt")` through an injected `@Steps StorefrontPage` field; add the
       driver-bridge call in `@BeforeAll`/`@BeforeEach` as appropriate.
-- [ ] 6.2 Run `./gradlew cleanTest test --tests '*StorefrontSmokeTest'`; confirm all three tests
+      - Added a `@BeforeEach` (this class had none before) that does `open("/")` then the driver
+        bridge, and removed each test's own now-redundant `open("/")` — matches the driver-bridge
+        placement used in the other three classes and avoids navigating three times over.
+        `homepage_loads` calls no `@Step` method (it only asserts on plain page state), so it
+        correctly has no narrated steps at all — consistent with "plumbing stays silent."
+- [x] 6.2 Run `./gradlew cleanTest test --tests '*StorefrontSmokeTest'`; confirm all three tests
       still pass and each shows its narrated navigation/search step with a screenshot.
+      - Verified standalone (`--tests '*StorefrontSmokeTest'`, no driver pre-existing from another
+        class) and in 3 consecutive full-suite runs. `category_navigation_works` and
+        `search_returns_results` each show their one narrated step with 2 screenshots;
+        `homepage_loads` has none, as expected.
 
 ## 7. CheckoutTest
 
