@@ -151,7 +151,10 @@ public class DiscoveryRunner {
             snapshot.put("captured", captured);
         }
 
-        final var json = new GsonBuilder().setPrettyPrinting().create().toJson(snapshot);
+        final var json = new GsonBuilder()
+                .setPrettyPrinting()
+                .create()
+                .toJson(snapshot);
 
         try {
             Files.createDirectories(OUTPUT_DIR);

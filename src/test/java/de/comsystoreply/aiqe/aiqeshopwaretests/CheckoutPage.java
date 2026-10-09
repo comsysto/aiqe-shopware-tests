@@ -9,6 +9,7 @@ import static com.codeborne.selenide.CollectionCondition.sizeGreaterThan;
 import static com.codeborne.selenide.Condition.checked;
 import static com.codeborne.selenide.Selenide.$;
 import static com.codeborne.selenide.Selenide.$$;
+import static java.util.Objects.requireNonNull;
 
 public class CheckoutPage {
 
@@ -25,7 +26,9 @@ public class CheckoutPage {
     public OrderSummary readSummary() {
         lineItems.shouldHave(sizeGreaterThan(0));
         final var items = lineItems.asFixedIterable().stream()
-                .map(item -> OrderSummaryReader.lineItem(item, Integer.parseInt(item.$("input[name='quantity']").getValue())))
+                .map(item -> OrderSummaryReader.lineItem(
+                        item,
+                        Integer.parseInt(requireNonNull(item.$("input[name='quantity']").getValue()))))
                 .toList();
 
         final var shippingAddress = OrderSummaryReader.address($(".confirm-address-shipping .address"));

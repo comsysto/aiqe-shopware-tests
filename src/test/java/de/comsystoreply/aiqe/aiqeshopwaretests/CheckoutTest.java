@@ -5,6 +5,7 @@ import com.codeborne.selenide.WebDriverRunner;
 import net.serenitybdd.annotations.Steps;
 import net.serenitybdd.core.Serenity;
 import net.serenitybdd.junit5.SerenityJUnit5Extension;
+import org.assertj.core.api.Condition;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -19,6 +20,7 @@ import static com.codeborne.selenide.Selenide.open;
 import static com.codeborne.selenide.Selenide.webdriver;
 import static com.codeborne.selenide.WebDriverConditions.urlContaining;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.atIndex;
 
 @ExtendWith(SerenityJUnit5Extension.class)
 class CheckoutTest {
@@ -47,8 +49,8 @@ class CheckoutTest {
 
     @BeforeEach
     void loginWithEmptyCart() {
-        // open() first: it recovers a dead/replaced driver session; clearBrowserCookies() does not
-        // and fails hard if a previous test's driver registration left the session unusable
+        // open() first to recover any dead/replaced driver session as clearBrowserCookies() does not
+        // and fails if a previous test's driver registration left the session unusable
         open("/");
         clearBrowserCookies();
         open("/");
@@ -82,16 +84,28 @@ class CheckoutTest {
         accountOrderPage.open();
 
         // then
-        assertThat(confirmSummary.lineItems()).hasSize(1);
-        final var lineItem = confirmSummary.lineItems().getFirst();
-        assertThat(lineItem.name()).isEqualTo(productName);
-        assertThat(lineItem.productNumber()).isEqualTo(productNumber);
-        assertThat(lineItem.quantity()).isEqualTo(1);
+        assertThat(confirmSummary.lineItems())
+                .hasSize(1)
+                .has(name(productName), atIndex(0))
+                .has(productNumber(productNumber), atIndex(0))
+                .has(quantity(1), atIndex(0));
 
         assertThat(orderNumber).isNotBlank();
         assertThat(finishSummary).usingRecursiveComparison().isEqualTo(confirmSummary);
 
         accountOrderPage.orderNumbers.findBy(exactText(orderNumber)).shouldBe(visible);
+    }
+
+    private static Condition<OrderSummary.LineItem> name(String expected) {
+        return new Condition<>(item -> expected.equals(item.name()), "name <%s>", expected);
+    }
+
+    private static Condition<OrderSummary.LineItem> productNumber(String expected) {
+        return new Condition<>(item -> expected.equals(item.productNumber()), "product number <%s>", expected);
+    }
+
+    private static Condition<OrderSummary.LineItem> quantity(int expected) {
+        return new Condition<>(item -> item.quantity() == expected, "quantity <%d>", expected);
     }
 
     private static void dismissCookieBanner() {

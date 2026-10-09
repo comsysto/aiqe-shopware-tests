@@ -7,8 +7,9 @@ import net.serenitybdd.annotations.Step;
 
 import static com.codeborne.selenide.CollectionCondition.size;
 import static com.codeborne.selenide.Condition.value;
-import static com.codeborne.selenide.Selenide.$$;
 import static com.codeborne.selenide.Selenide.$;
+import static com.codeborne.selenide.Selenide.$$;
+import static java.util.Objects.requireNonNull;
 
 public class CartPage {
 
@@ -35,7 +36,7 @@ public class CartPage {
 
     @Step("Increase the quantity of line item {0}")
     public void increaseQuantity(final int index) {
-        final var next = Integer.parseInt(quantityInput(index).getValue()) + 1;
+        final var next = Integer.parseInt(requireNonNull(quantityInput(index).getValue())) + 1;
         quantityUpButton(index).click();
         quantityInput(index).shouldHave(value(String.valueOf(next)));
     }
@@ -52,7 +53,7 @@ public class CartPage {
     @Step("Ensure the cart is empty")
     public void ensureEmpty() {
         Selenide.open("/checkout/cart");
-        while (lineItems.size() > 0) {
+        while (!lineItems.isEmpty()) {
             final var remaining = lineItems.size() - 1;
             removeButton(0).click();
             lineItems.shouldHave(size(remaining));

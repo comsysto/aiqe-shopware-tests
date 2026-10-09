@@ -7,9 +7,11 @@ import java.time.Duration;
 
 public class DockwareContainer {
 
+    private static final String DOCKWARE_VERSION = "6.7";
+
     @SuppressWarnings("resource")
     private static final GenericContainer<?> CONTAINER =
-            new GenericContainer<>("dockware/dev:latest")
+            new GenericContainer<>("dockware/dev:" + DOCKWARE_VERSION)
                     .withExposedPorts(80)
                     .waitingFor(Wait.forLogMessage(".*IS READY.*", 1).withStartupTimeout(Duration.ofMinutes(3)));
 
@@ -17,11 +19,11 @@ public class DockwareContainer {
      * Starts the Shopware container and patches the sales channel domain to match the
      * dynamic port assigned by Testcontainers.
      *
-     * {@return the base URL at which the storefront is reachable}
+     * @return the base URL at which the storefront is reachable.
      */
     public static String start() {
         CONTAINER.start();
-        final var shopUrl = "http://" + CONTAINER.getHost() + ":" + CONTAINER.getMappedPort(80);
+        final var shopUrl = "http://%s:%d".formatted(CONTAINER.getHost(), CONTAINER.getMappedPort(80));
         configureSalesChannelDomain(shopUrl);
         return shopUrl;
     }
@@ -34,7 +36,7 @@ public class DockwareContainer {
         try {
             final var sqlResult = CONTAINER.execInContainer(
                     "mysql", "-h", "127.0.0.1", "-u", "root", "-proot", "shopware", "-e",
-                    "UPDATE sales_channel_domain SET url = '" + shopUrl + "' WHERE url = 'http://localhost';"
+                    "UPDATE sales_channel_domain SET url = '%s' WHERE url = 'http://localhost';".formatted(shopUrl)
             );
             if (sqlResult.getExitCode() != 0) {
                 throw new RuntimeException("SQL update failed: " + sqlResult.getStderr());
