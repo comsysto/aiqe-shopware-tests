@@ -7,7 +7,7 @@ import java.time.Duration;
 
 public class DockwareContainer {
 
-    private static final String DOCKWARE_VERSION = "6.7";
+    private static final String DOCKWARE_VERSION = "6.7.2.2";
 
     @SuppressWarnings("resource")
     private static final GenericContainer<?> CONTAINER =
